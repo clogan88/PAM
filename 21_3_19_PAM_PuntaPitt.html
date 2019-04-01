@@ -127,9 +127,30 @@ $(document).ready(function () {
 
 <div id="load-libraries" class="section level2">
 <h2>Load libraries</h2>
+<pre><code>## ── Attaching packages ───────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 3.0.0     ✔ purrr   0.2.4
+## ✔ tibble  1.4.2     ✔ dplyr   0.7.4
+## ✔ tidyr   0.8.0     ✔ stringr 1.3.0
+## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
+<pre><code>## Warning: package 'ggplot2' was built under R version 3.4.4</code></pre>
+<pre><code>## ── Conflicts ──────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 </div>
 <div id="load-data" class="section level2">
 <h2>Load data</h2>
+<pre><code>## Parsed with column specification:
+## cols(
+##   Site = col_character(),
+##   Treatment = col_double(),
+##   Tank = col_character(),
+##   Species = col_character(),
+##   Sample = col_character(),
+##   PAM = col_double(),
+##   Geno = col_integer(),
+##   Replicate = col_character(),
+##   Date = col_character()
+## )</code></pre>
 </div>
 <div id="scatterplot-with-lm-fit-by-species" class="section level2">
 <h2>Scatterplot with lm fit by species</h2>
@@ -155,56 +176,439 @@ $(document).ready(function () {
 </div>
 <div id="exponential-model-fitting-stats" class="section level2">
 <h2>Exponential model fitting &amp; stats</h2>
-<pre class="r"><code>mod_exp &lt;- lm(PAM ~ exp(Treatment) + Species, data = PAMdata)
+<pre class="r"><code>mod_exp &lt;- lm(PAM ~ exp(Treatment) * Species * Replicate, data = PAMdata)
 summary(mod_exp)</code></pre>
 <pre><code>## 
 ## Call:
-## lm(formula = PAM ~ exp(Treatment) + Species, data = PAMdata)
+## lm(formula = PAM ~ exp(Treatment) * Species * Replicate, data = PAMdata)
 ## 
 ## Residuals:
-##       Min        1Q    Median        3Q       Max 
-## -0.153432 -0.026176  0.007119  0.029446  0.108568 
+##      Min       1Q   Median       3Q      Max 
+## -0.12556 -0.02474  0.00630  0.02833  0.13644 
 ## 
 ## Coefficients:
-##                         Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)            5.290e-01  6.478e-03  81.654  &lt; 2e-16 ***
-## exp(Treatment)        -4.906e-17  3.801e-18 -12.908  &lt; 2e-16 ***
-## SpeciesPocillopora_sp  5.175e-02  7.995e-03   6.473 1.98e-09 ***
+##                                                   Estimate Std. Error
+## (Intercept)                                      5.305e-01  1.019e-02
+## exp(Treatment)                                  -4.863e-17  7.599e-18
+## SpeciesPocillopora_sp                            5.150e-02  1.441e-02
+## ReplicateB                                      -9.090e-03  1.441e-02
+## exp(Treatment):SpeciesPocillopora_sp             4.770e-18  1.075e-17
+## exp(Treatment):ReplicateB                        6.454e-18  1.075e-17
+## SpeciesPocillopora_sp:ReplicateB                 1.267e-02  2.038e-02
+## exp(Treatment):SpeciesPocillopora_sp:ReplicateB -2.416e-17  1.520e-17
+##                                                 t value Pr(&gt;|t|)    
+## (Intercept)                                      52.048  &lt; 2e-16 ***
+## exp(Treatment)                                   -6.400 3.14e-09 ***
+## SpeciesPocillopora_sp                             3.573 0.000509 ***
+## ReplicateB                                       -0.631 0.529470    
+## exp(Treatment):SpeciesPocillopora_sp              0.444 0.657934    
+## exp(Treatment):ReplicateB                         0.601 0.549261    
+## SpeciesPocillopora_sp:ReplicateB                  0.621 0.535522    
+## exp(Treatment):SpeciesPocillopora_sp:ReplicateB  -1.589 0.114580    
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 ## 
-## Residual standard error: 0.04523 on 125 degrees of freedom
-## Multiple R-squared:  0.6252, Adjusted R-squared:  0.6192 
-## F-statistic: 104.2 on 2 and 125 DF,  p-value: &lt; 2.2e-16</code></pre>
+## Residual standard error: 0.04521 on 120 degrees of freedom
+## Multiple R-squared:  0.6404, Adjusted R-squared:  0.6194 
+## F-statistic: 30.53 on 7 and 120 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 <div id="way-anova-model-fitting-tukey-hsd" class="section level2">
 <h2>2 way ANOVA model fitting &amp; Tukey HSD</h2>
-<pre class="r"><code>mod_anova &lt;- aov(PAM ~ factor(Treatment) + Species, data = PAMdata)
+<pre class="r"><code>mod_anova &lt;- aov(PAM ~ factor(Treatment) * Species * Replicate, data = PAMdata)
 summary(mod_anova)</code></pre>
-<pre><code>##                    Df Sum Sq Mean Sq F value  Pr(&gt;F)    
-## factor(Treatment)   3 0.3418 0.11395   55.04 &lt; 2e-16 ***
-## Species             1 0.0857 0.08570   41.39 2.5e-09 ***
-## Residuals         123 0.2547 0.00207                    
+<pre><code>##                                      Df Sum Sq Mean Sq F value   Pr(&gt;F)
+## factor(Treatment)                     3 0.3418 0.11395  52.924  &lt; 2e-16
+## Species                               1 0.0857 0.08570  39.804 5.77e-09
+## Replicate                             1 0.0018 0.00177   0.822    0.366
+## factor(Treatment):Species             3 0.0028 0.00094   0.435    0.728
+## factor(Treatment):Replicate           3 0.0016 0.00053   0.246    0.864
+## Species:Replicate                     1 0.0004 0.00044   0.206    0.651
+## factor(Treatment):Species:Replicate   3 0.0069 0.00230   1.070    0.365
+## Residuals                           112 0.2411 0.00215                 
+##                                        
+## factor(Treatment)                   ***
+## Species                             ***
+## Replicate                              
+## factor(Treatment):Species              
+## factor(Treatment):Replicate            
+## Species:Replicate                      
+## factor(Treatment):Species:Replicate    
+## Residuals                              
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 <pre class="r"><code>TukeyHSD(mod_anova)</code></pre>
 <pre><code>##   Tukey multiple comparisons of means
 ##     95% family-wise confidence level
 ## 
-## Fit: aov(formula = PAM ~ factor(Treatment) + Species, data = PAMdata)
+## Fit: aov(formula = PAM ~ factor(Treatment) * Species * Replicate, data = PAMdata)
 ## 
 ## $`factor(Treatment)`
 ##                  diff         lwr          upr     p adj
-## 32.5-26    0.00040625 -0.02922103  0.030033529 0.9999835
-## 34-26     -0.02159375 -0.05122103  0.008033529 0.2341414
-## 35.5-26   -0.12462500 -0.15425228 -0.094997721 0.0000000
-## 34-32.5   -0.02200000 -0.05162728  0.007627279 0.2193105
-## 35.5-32.5 -0.12503125 -0.15465853 -0.095403971 0.0000000
-## 35.5-34   -0.10303125 -0.13265853 -0.073403971 0.0000000
+## 32.5-26    0.00040625 -0.02984720  0.030659702 0.9999845
+## 34-26     -0.02159375 -0.05184720  0.008659702 0.2506069
+## 35.5-26   -0.12462500 -0.15487845 -0.094371548 0.0000000
+## 34-32.5   -0.02200000 -0.05225345  0.008253452 0.2354130
+## 35.5-32.5 -0.12503125 -0.15528470 -0.094777798 0.0000000
+## 35.5-34   -0.10303125 -0.13328470 -0.072777798 0.0000000
 ## 
 ## $Species
 ##                                 diff        lwr        upr p adj
-## Pocillopora_sp-Pavona_clavus 0.05175 0.03582813 0.06767187     0</code></pre>
+## Pocillopora_sp-Pavona_clavus 0.05175 0.03549772 0.06800228     0
+## 
+## $Replicate
+##           diff         lwr         upr     p adj
+## B-A -0.0074375 -0.02368978 0.008814782 0.3664956
+## 
+## $`factor(Treatment):Species`
+##                                               diff         lwr         upr
+## 32.5:Pavona_clavus-26:Pavona_clavus     -0.0004375 -0.05111324  0.05023824
+## 34:Pavona_clavus-26:Pavona_clavus       -0.0264375 -0.07711324  0.02423824
+## 35.5:Pavona_clavus-26:Pavona_clavus     -0.1165625 -0.16723824 -0.06588676
+## 26:Pocillopora_sp-26:Pavona_clavus       0.0529375  0.00226176  0.10361324
+## 32.5:Pocillopora_sp-26:Pavona_clavus     0.0541875  0.00351176  0.10486324
+## 34:Pocillopora_sp-26:Pavona_clavus       0.0361875 -0.01448824  0.08686324
+## 35.5:Pocillopora_sp-26:Pavona_clavus    -0.0797500 -0.13042574 -0.02907426
+## 34:Pavona_clavus-32.5:Pavona_clavus     -0.0260000 -0.07667574  0.02467574
+## 35.5:Pavona_clavus-32.5:Pavona_clavus   -0.1161250 -0.16680074 -0.06544926
+## 26:Pocillopora_sp-32.5:Pavona_clavus     0.0533750  0.00269926  0.10405074
+## 32.5:Pocillopora_sp-32.5:Pavona_clavus   0.0546250  0.00394926  0.10530074
+## 34:Pocillopora_sp-32.5:Pavona_clavus     0.0366250 -0.01405074  0.08730074
+## 35.5:Pocillopora_sp-32.5:Pavona_clavus  -0.0793125 -0.12998824 -0.02863676
+## 35.5:Pavona_clavus-34:Pavona_clavus     -0.0901250 -0.14080074 -0.03944926
+## 26:Pocillopora_sp-34:Pavona_clavus       0.0793750  0.02869926  0.13005074
+## 32.5:Pocillopora_sp-34:Pavona_clavus     0.0806250  0.02994926  0.13130074
+## 34:Pocillopora_sp-34:Pavona_clavus       0.0626250  0.01194926  0.11330074
+## 35.5:Pocillopora_sp-34:Pavona_clavus    -0.0533125 -0.10398824 -0.00263676
+## 26:Pocillopora_sp-35.5:Pavona_clavus     0.1695000  0.11882426  0.22017574
+## 32.5:Pocillopora_sp-35.5:Pavona_clavus   0.1707500  0.12007426  0.22142574
+## 34:Pocillopora_sp-35.5:Pavona_clavus     0.1527500  0.10207426  0.20342574
+## 35.5:Pocillopora_sp-35.5:Pavona_clavus   0.0368125 -0.01386324  0.08748824
+## 32.5:Pocillopora_sp-26:Pocillopora_sp    0.0012500 -0.04942574  0.05192574
+## 34:Pocillopora_sp-26:Pocillopora_sp     -0.0167500 -0.06742574  0.03392574
+## 35.5:Pocillopora_sp-26:Pocillopora_sp   -0.1326875 -0.18336324 -0.08201176
+## 34:Pocillopora_sp-32.5:Pocillopora_sp   -0.0180000 -0.06867574  0.03267574
+## 35.5:Pocillopora_sp-32.5:Pocillopora_sp -0.1339375 -0.18461324 -0.08326176
+## 35.5:Pocillopora_sp-34:Pocillopora_sp   -0.1159375 -0.16661324 -0.06526176
+##                                             p adj
+## 32.5:Pavona_clavus-26:Pavona_clavus     1.0000000
+## 34:Pavona_clavus-26:Pavona_clavus       0.7424362
+## 35.5:Pavona_clavus-26:Pavona_clavus     0.0000000
+## 26:Pocillopora_sp-26:Pavona_clavus      0.0339493
+## 32.5:Pocillopora_sp-26:Pavona_clavus    0.0271865
+## 34:Pocillopora_sp-26:Pavona_clavus      0.3563028
+## 35.5:Pocillopora_sp-26:Pavona_clavus    0.0001019
+## 34:Pavona_clavus-32.5:Pavona_clavus     0.7583094
+## 35.5:Pavona_clavus-32.5:Pavona_clavus   0.0000000
+## 26:Pocillopora_sp-32.5:Pavona_clavus    0.0314301
+## 32.5:Pocillopora_sp-32.5:Pavona_clavus  0.0251192
+## 34:Pocillopora_sp-32.5:Pavona_clavus    0.3407195
+## 35.5:Pocillopora_sp-32.5:Pavona_clavus  0.0001137
+## 35.5:Pavona_clavus-34:Pavona_clavus     0.0000068
+## 26:Pocillopora_sp-34:Pavona_clavus      0.0001120
+## 32.5:Pocillopora_sp-34:Pavona_clavus    0.0000818
+## 34:Pocillopora_sp-34:Pavona_clavus      0.0052781
+## 35.5:Pocillopora_sp-34:Pavona_clavus    0.0317796
+## 26:Pocillopora_sp-35.5:Pavona_clavus    0.0000000
+## 32.5:Pocillopora_sp-35.5:Pavona_clavus  0.0000000
+## 34:Pocillopora_sp-35.5:Pavona_clavus    0.0000000
+## 35.5:Pocillopora_sp-35.5:Pavona_clavus  0.3341508
+## 32.5:Pocillopora_sp-26:Pocillopora_sp   1.0000000
+## 34:Pocillopora_sp-26:Pocillopora_sp     0.9703308
+## 35.5:Pocillopora_sp-26:Pocillopora_sp   0.0000000
+## 34:Pocillopora_sp-32.5:Pocillopora_sp   0.9561765
+## 35.5:Pocillopora_sp-32.5:Pocillopora_sp 0.0000000
+## 35.5:Pocillopora_sp-34:Pocillopora_sp   0.0000000
+## 
+## $`factor(Treatment):Replicate`
+##                     diff         lwr         upr     p adj
+## 32.5:A-26:A    0.0051250 -0.04555074  0.05580074 0.9999850
+## 34:A-26:A     -0.0150625 -0.06573824  0.03561324 0.9837267
+## 35.5:A-26:A   -0.1148750 -0.16555074 -0.06419926 0.0000000
+## 26:B-26:A      0.0030625 -0.04761324  0.05373824 0.9999996
+## 32.5:B-26:A   -0.0012500 -0.05192574  0.04942574 1.0000000
+## 34:B-26:A     -0.0250625 -0.07573824  0.02561324 0.7908907
+## 35.5:B-26:A   -0.1313125 -0.18198824 -0.08063676 0.0000000
+## 34:A-32.5:A   -0.0201875 -0.07086324  0.03048824 0.9210693
+## 35.5:A-32.5:A -0.1200000 -0.17067574 -0.06932426 0.0000000
+## 26:B-32.5:A   -0.0020625 -0.05273824  0.04861324 1.0000000
+## 32.5:B-32.5:A -0.0063750 -0.05705074  0.04430074 0.9999338
+## 34:B-32.5:A   -0.0301875 -0.08086324  0.02048824 0.5943914
+## 35.5:B-32.5:A -0.1364375 -0.18711324 -0.08576176 0.0000000
+## 35.5:A-34:A   -0.0998125 -0.15048824 -0.04913676 0.0000005
+## 26:B-34:A      0.0181250 -0.03255074  0.06880074 0.9545380
+## 32.5:B-34:A    0.0138125 -0.03686324  0.06448824 0.9902193
+## 34:B-34:A     -0.0100000 -0.06067574  0.04067574 0.9986910
+## 35.5:B-34:A   -0.1162500 -0.16692574 -0.06557426 0.0000000
+## 26:B-35.5:A    0.1179375  0.06726176  0.16861324 0.0000000
+## 32.5:B-35.5:A  0.1136250  0.06294926  0.16430074 0.0000000
+## 34:B-35.5:A    0.0898125  0.03913676  0.14048824 0.0000074
+## 35.5:B-35.5:A -0.0164375 -0.06711324  0.03423824 0.9732732
+## 32.5:B-26:B   -0.0043125 -0.05498824  0.04636324 0.9999954
+## 34:B-26:B     -0.0281250 -0.07880074  0.02255074 0.6779378
+## 35.5:B-26:B   -0.1343750 -0.18505074 -0.08369926 0.0000000
+## 34:B-32.5:B   -0.0238125 -0.07448824  0.02686324 0.8308994
+## 35.5:B-32.5:B -0.1300625 -0.18073824 -0.07938676 0.0000000
+## 35.5:B-34:B   -0.1062500 -0.15692574 -0.05557426 0.0000001
+## 
+## $`Species:Replicate`
+##                                          diff         lwr         upr
+## Pocillopora_sp:A-Pavona_clavus:A   0.05546875  0.02521530  0.08572220
+## Pavona_clavus:B-Pavona_clavus:A   -0.00371875 -0.03397220  0.02653470
+## Pocillopora_sp:B-Pavona_clavus:A   0.04431250  0.01405905  0.07456595
+## Pavona_clavus:B-Pocillopora_sp:A  -0.05918750 -0.08944095 -0.02893405
+## Pocillopora_sp:B-Pocillopora_sp:A -0.01115625 -0.04140970  0.01909720
+## Pocillopora_sp:B-Pavona_clavus:B   0.04803125  0.01777780  0.07828470
+##                                       p adj
+## Pocillopora_sp:A-Pavona_clavus:A  0.0000313
+## Pavona_clavus:B-Pavona_clavus:A   0.9885477
+## Pocillopora_sp:B-Pavona_clavus:A  0.0012411
+## Pavona_clavus:B-Pocillopora_sp:A  0.0000082
+## Pocillopora_sp:B-Pocillopora_sp:A 0.7713803
+## Pocillopora_sp:B-Pavona_clavus:B  0.0003881
+## 
+## $`factor(Treatment):Species:Replicate`
+##                                                  diff         lwr
+## 32.5:Pavona_clavus:A-26:Pavona_clavus:A     -0.005000 -0.08632586
+## 34:Pavona_clavus:A-26:Pavona_clavus:A       -0.032750 -0.11407586
+## 35.5:Pavona_clavus:A-26:Pavona_clavus:A     -0.127250 -0.20857586
+## 26:Pocillopora_sp:A-26:Pavona_clavus:A       0.035375 -0.04595086
+## 32.5:Pocillopora_sp:A-26:Pavona_clavus:A     0.050625 -0.03070086
+## 34:Pocillopora_sp:A-26:Pavona_clavus:A       0.038000 -0.04332586
+## 35.5:Pocillopora_sp:A-26:Pavona_clavus:A    -0.067125 -0.14845086
+## 26:Pavona_clavus:B-26:Pavona_clavus:A       -0.014500 -0.09582586
+## 32.5:Pavona_clavus:B-26:Pavona_clavus:A     -0.010375 -0.09170086
+## 34:Pavona_clavus:B-26:Pavona_clavus:A       -0.034625 -0.11595086
+## 35.5:Pavona_clavus:B-26:Pavona_clavus:A     -0.120375 -0.20170086
+## 26:Pocillopora_sp:B-26:Pavona_clavus:A       0.056000 -0.02532586
+## 32.5:Pocillopora_sp:B-26:Pavona_clavus:A     0.043250 -0.03807586
+## 34:Pocillopora_sp:B-26:Pavona_clavus:A       0.019875 -0.06145086
+## 35.5:Pocillopora_sp:B-26:Pavona_clavus:A    -0.106875 -0.18820086
+## 34:Pavona_clavus:A-32.5:Pavona_clavus:A     -0.027750 -0.10907586
+## 35.5:Pavona_clavus:A-32.5:Pavona_clavus:A   -0.122250 -0.20357586
+## 26:Pocillopora_sp:A-32.5:Pavona_clavus:A     0.040375 -0.04095086
+## 32.5:Pocillopora_sp:A-32.5:Pavona_clavus:A   0.055625 -0.02570086
+## 34:Pocillopora_sp:A-32.5:Pavona_clavus:A     0.043000 -0.03832586
+## 35.5:Pocillopora_sp:A-32.5:Pavona_clavus:A  -0.062125 -0.14345086
+## 26:Pavona_clavus:B-32.5:Pavona_clavus:A     -0.009500 -0.09082586
+## 32.5:Pavona_clavus:B-32.5:Pavona_clavus:A   -0.005375 -0.08670086
+## 34:Pavona_clavus:B-32.5:Pavona_clavus:A     -0.029625 -0.11095086
+## 35.5:Pavona_clavus:B-32.5:Pavona_clavus:A   -0.115375 -0.19670086
+## 26:Pocillopora_sp:B-32.5:Pavona_clavus:A     0.061000 -0.02032586
+## 32.5:Pocillopora_sp:B-32.5:Pavona_clavus:A   0.048250 -0.03307586
+## 34:Pocillopora_sp:B-32.5:Pavona_clavus:A     0.024875 -0.05645086
+## 35.5:Pocillopora_sp:B-32.5:Pavona_clavus:A  -0.101875 -0.18320086
+## 35.5:Pavona_clavus:A-34:Pavona_clavus:A     -0.094500 -0.17582586
+## 26:Pocillopora_sp:A-34:Pavona_clavus:A       0.068125 -0.01320086
+## 32.5:Pocillopora_sp:A-34:Pavona_clavus:A     0.083375  0.00204914
+## 34:Pocillopora_sp:A-34:Pavona_clavus:A       0.070750 -0.01057586
+## 35.5:Pocillopora_sp:A-34:Pavona_clavus:A    -0.034375 -0.11570086
+## 26:Pavona_clavus:B-34:Pavona_clavus:A        0.018250 -0.06307586
+## 32.5:Pavona_clavus:B-34:Pavona_clavus:A      0.022375 -0.05895086
+## 34:Pavona_clavus:B-34:Pavona_clavus:A       -0.001875 -0.08320086
+## 35.5:Pavona_clavus:B-34:Pavona_clavus:A     -0.087625 -0.16895086
+## 26:Pocillopora_sp:B-34:Pavona_clavus:A       0.088750  0.00742414
+## 32.5:Pocillopora_sp:B-34:Pavona_clavus:A     0.076000 -0.00532586
+## 34:Pocillopora_sp:B-34:Pavona_clavus:A       0.052625 -0.02870086
+## 35.5:Pocillopora_sp:B-34:Pavona_clavus:A    -0.074125 -0.15545086
+## 26:Pocillopora_sp:A-35.5:Pavona_clavus:A     0.162625  0.08129914
+## 32.5:Pocillopora_sp:A-35.5:Pavona_clavus:A   0.177875  0.09654914
+## 34:Pocillopora_sp:A-35.5:Pavona_clavus:A     0.165250  0.08392414
+## 35.5:Pocillopora_sp:A-35.5:Pavona_clavus:A   0.060125 -0.02120086
+## 26:Pavona_clavus:B-35.5:Pavona_clavus:A      0.112750  0.03142414
+## 32.5:Pavona_clavus:B-35.5:Pavona_clavus:A    0.116875  0.03554914
+## 34:Pavona_clavus:B-35.5:Pavona_clavus:A      0.092625  0.01129914
+## 35.5:Pavona_clavus:B-35.5:Pavona_clavus:A    0.006875 -0.07445086
+## 26:Pocillopora_sp:B-35.5:Pavona_clavus:A     0.183250  0.10192414
+## 32.5:Pocillopora_sp:B-35.5:Pavona_clavus:A   0.170500  0.08917414
+## 34:Pocillopora_sp:B-35.5:Pavona_clavus:A     0.147125  0.06579914
+## 35.5:Pocillopora_sp:B-35.5:Pavona_clavus:A   0.020375 -0.06095086
+## 32.5:Pocillopora_sp:A-26:Pocillopora_sp:A    0.015250 -0.06607586
+## 34:Pocillopora_sp:A-26:Pocillopora_sp:A      0.002625 -0.07870086
+## 35.5:Pocillopora_sp:A-26:Pocillopora_sp:A   -0.102500 -0.18382586
+## 26:Pavona_clavus:B-26:Pocillopora_sp:A      -0.049875 -0.13120086
+## 32.5:Pavona_clavus:B-26:Pocillopora_sp:A    -0.045750 -0.12707586
+## 34:Pavona_clavus:B-26:Pocillopora_sp:A      -0.070000 -0.15132586
+## 35.5:Pavona_clavus:B-26:Pocillopora_sp:A    -0.155750 -0.23707586
+## 26:Pocillopora_sp:B-26:Pocillopora_sp:A      0.020625 -0.06070086
+## 32.5:Pocillopora_sp:B-26:Pocillopora_sp:A    0.007875 -0.07345086
+## 34:Pocillopora_sp:B-26:Pocillopora_sp:A     -0.015500 -0.09682586
+## 35.5:Pocillopora_sp:B-26:Pocillopora_sp:A   -0.142250 -0.22357586
+## 34:Pocillopora_sp:A-32.5:Pocillopora_sp:A   -0.012625 -0.09395086
+## 35.5:Pocillopora_sp:A-32.5:Pocillopora_sp:A -0.117750 -0.19907586
+## 26:Pavona_clavus:B-32.5:Pocillopora_sp:A    -0.065125 -0.14645086
+## 32.5:Pavona_clavus:B-32.5:Pocillopora_sp:A  -0.061000 -0.14232586
+## 34:Pavona_clavus:B-32.5:Pocillopora_sp:A    -0.085250 -0.16657586
+## 35.5:Pavona_clavus:B-32.5:Pocillopora_sp:A  -0.171000 -0.25232586
+## 26:Pocillopora_sp:B-32.5:Pocillopora_sp:A    0.005375 -0.07595086
+## 32.5:Pocillopora_sp:B-32.5:Pocillopora_sp:A -0.007375 -0.08870086
+## 34:Pocillopora_sp:B-32.5:Pocillopora_sp:A   -0.030750 -0.11207586
+## 35.5:Pocillopora_sp:B-32.5:Pocillopora_sp:A -0.157500 -0.23882586
+## 35.5:Pocillopora_sp:A-34:Pocillopora_sp:A   -0.105125 -0.18645086
+## 26:Pavona_clavus:B-34:Pocillopora_sp:A      -0.052500 -0.13382586
+## 32.5:Pavona_clavus:B-34:Pocillopora_sp:A    -0.048375 -0.12970086
+## 34:Pavona_clavus:B-34:Pocillopora_sp:A      -0.072625 -0.15395086
+## 35.5:Pavona_clavus:B-34:Pocillopora_sp:A    -0.158375 -0.23970086
+## 26:Pocillopora_sp:B-34:Pocillopora_sp:A      0.018000 -0.06332586
+## 32.5:Pocillopora_sp:B-34:Pocillopora_sp:A    0.005250 -0.07607586
+## 34:Pocillopora_sp:B-34:Pocillopora_sp:A     -0.018125 -0.09945086
+## 35.5:Pocillopora_sp:B-34:Pocillopora_sp:A   -0.144875 -0.22620086
+## 26:Pavona_clavus:B-35.5:Pocillopora_sp:A     0.052625 -0.02870086
+## 32.5:Pavona_clavus:B-35.5:Pocillopora_sp:A   0.056750 -0.02457586
+## 34:Pavona_clavus:B-35.5:Pocillopora_sp:A     0.032500 -0.04882586
+## 35.5:Pavona_clavus:B-35.5:Pocillopora_sp:A  -0.053250 -0.13457586
+## 26:Pocillopora_sp:B-35.5:Pocillopora_sp:A    0.123125  0.04179914
+## 32.5:Pocillopora_sp:B-35.5:Pocillopora_sp:A  0.110375  0.02904914
+## 34:Pocillopora_sp:B-35.5:Pocillopora_sp:A    0.087000  0.00567414
+## 35.5:Pocillopora_sp:B-35.5:Pocillopora_sp:A -0.039750 -0.12107586
+## 32.5:Pavona_clavus:B-26:Pavona_clavus:B      0.004125 -0.07720086
+## 34:Pavona_clavus:B-26:Pavona_clavus:B       -0.020125 -0.10145086
+## 35.5:Pavona_clavus:B-26:Pavona_clavus:B     -0.105875 -0.18720086
+## 26:Pocillopora_sp:B-26:Pavona_clavus:B       0.070500 -0.01082586
+## 32.5:Pocillopora_sp:B-26:Pavona_clavus:B     0.057750 -0.02357586
+## 34:Pocillopora_sp:B-26:Pavona_clavus:B       0.034375 -0.04695086
+## 35.5:Pocillopora_sp:B-26:Pavona_clavus:B    -0.092375 -0.17370086
+## 34:Pavona_clavus:B-32.5:Pavona_clavus:B     -0.024250 -0.10557586
+## 35.5:Pavona_clavus:B-32.5:Pavona_clavus:B   -0.110000 -0.19132586
+## 26:Pocillopora_sp:B-32.5:Pavona_clavus:B     0.066375 -0.01495086
+## 32.5:Pocillopora_sp:B-32.5:Pavona_clavus:B   0.053625 -0.02770086
+## 34:Pocillopora_sp:B-32.5:Pavona_clavus:B     0.030250 -0.05107586
+## 35.5:Pocillopora_sp:B-32.5:Pavona_clavus:B  -0.096500 -0.17782586
+## 35.5:Pavona_clavus:B-34:Pavona_clavus:B     -0.085750 -0.16707586
+## 26:Pocillopora_sp:B-34:Pavona_clavus:B       0.090625  0.00929914
+## 32.5:Pocillopora_sp:B-34:Pavona_clavus:B     0.077875 -0.00345086
+## 34:Pocillopora_sp:B-34:Pavona_clavus:B       0.054500 -0.02682586
+## 35.5:Pocillopora_sp:B-34:Pavona_clavus:B    -0.072250 -0.15357586
+## 26:Pocillopora_sp:B-35.5:Pavona_clavus:B     0.176375  0.09504914
+## 32.5:Pocillopora_sp:B-35.5:Pavona_clavus:B   0.163625  0.08229914
+## 34:Pocillopora_sp:B-35.5:Pavona_clavus:B     0.140250  0.05892414
+## 35.5:Pocillopora_sp:B-35.5:Pavona_clavus:B   0.013500 -0.06782586
+## 32.5:Pocillopora_sp:B-26:Pocillopora_sp:B   -0.012750 -0.09407586
+## 34:Pocillopora_sp:B-26:Pocillopora_sp:B     -0.036125 -0.11745086
+## 35.5:Pocillopora_sp:B-26:Pocillopora_sp:B   -0.162875 -0.24420086
+## 34:Pocillopora_sp:B-32.5:Pocillopora_sp:B   -0.023375 -0.10470086
+## 35.5:Pocillopora_sp:B-32.5:Pocillopora_sp:B -0.150125 -0.23145086
+## 35.5:Pocillopora_sp:B-34:Pocillopora_sp:B   -0.126750 -0.20807586
+##                                                     upr     p adj
+## 32.5:Pavona_clavus:A-26:Pavona_clavus:A      0.07632586 1.0000000
+## 34:Pavona_clavus:A-26:Pavona_clavus:A        0.04857586 0.9889408
+## 35.5:Pavona_clavus:A-26:Pavona_clavus:A     -0.04592414 0.0000295
+## 26:Pocillopora_sp:A-26:Pavona_clavus:A       0.11670086 0.9772045
+## 32.5:Pocillopora_sp:A-26:Pavona_clavus:A     0.13195086 0.7073581
+## 34:Pocillopora_sp:A-26:Pavona_clavus:A       0.11932586 0.9575789
+## 35.5:Pocillopora_sp:A-26:Pavona_clavus:A     0.01420086 0.2352432
+## 26:Pavona_clavus:B-26:Pavona_clavus:A        0.06682586 0.9999995
+## 32.5:Pavona_clavus:B-26:Pavona_clavus:A      0.07095086 1.0000000
+## 34:Pavona_clavus:B-26:Pavona_clavus:A        0.04670086 0.9812538
+## 35.5:Pavona_clavus:B-26:Pavona_clavus:A     -0.03904914 0.0001062
+## 26:Pocillopora_sp:B-26:Pavona_clavus:A       0.13732586 0.5416440
+## 32.5:Pocillopora_sp:B-26:Pavona_clavus:A     0.12457586 0.8861290
+## 34:Pocillopora_sp:B-26:Pavona_clavus:A       0.10120086 0.9999640
+## 35.5:Pocillopora_sp:B-26:Pavona_clavus:A    -0.02554914 0.0011356
+## 34:Pavona_clavus:A-32.5:Pavona_clavus:A      0.05357586 0.9980238
+## 35.5:Pavona_clavus:A-32.5:Pavona_clavus:A   -0.04092414 0.0000752
+## 26:Pocillopora_sp:A-32.5:Pavona_clavus:A     0.12170086 0.9310896
+## 32.5:Pocillopora_sp:A-32.5:Pavona_clavus:A   0.13695086 0.5534464
+## 34:Pocillopora_sp:A-32.5:Pavona_clavus:A     0.12432586 0.8906253
+## 35.5:Pocillopora_sp:A-32.5:Pavona_clavus:A   0.01920086 0.3581588
+## 26:Pavona_clavus:B-32.5:Pavona_clavus:A      0.07182586 1.0000000
+## 32.5:Pavona_clavus:B-32.5:Pavona_clavus:A    0.07595086 1.0000000
+## 34:Pavona_clavus:B-32.5:Pavona_clavus:A      0.05170086 0.9960007
+## 35.5:Pavona_clavus:B-32.5:Pavona_clavus:A   -0.03404914 0.0002617
+## 26:Pocillopora_sp:B-32.5:Pavona_clavus:A     0.14232586 0.3897555
+## 32.5:Pocillopora_sp:B-32.5:Pavona_clavus:A   0.12957586 0.7736364
+## 34:Pocillopora_sp:B-32.5:Pavona_clavus:A     0.10620086 0.9994305
+## 35.5:Pocillopora_sp:B-32.5:Pavona_clavus:A  -0.02054914 0.0025805
+## 35.5:Pavona_clavus:A-34:Pavona_clavus:A     -0.01317414 0.0081132
+## 26:Pocillopora_sp:A-34:Pavona_clavus:A       0.14945086 0.2144593
+## 32.5:Pocillopora_sp:A-34:Pavona_clavus:A     0.16470086 0.0385032
+## 34:Pocillopora_sp:A-34:Pavona_clavus:A       0.15207586 0.1660979
+## 35.5:Pocillopora_sp:A-34:Pavona_clavus:A     0.04695086 0.9824705
+## 26:Pavona_clavus:B-34:Pavona_clavus:A        0.09957586 0.9999881
+## 32.5:Pavona_clavus:B-34:Pavona_clavus:A      0.10370086 0.9998404
+## 34:Pavona_clavus:B-34:Pavona_clavus:A        0.07945086 1.0000000
+## 35.5:Pavona_clavus:B-34:Pavona_clavus:A     -0.00629914 0.0218097
+## 26:Pocillopora_sp:B-34:Pavona_clavus:A       0.17007586 0.0186567
+## 32.5:Pocillopora_sp:B-34:Pavona_clavus:A     0.15732586 0.0945497
+## 34:Pocillopora_sp:B-34:Pavona_clavus:A       0.13395086 0.6472597
+## 35.5:Pocillopora_sp:B-34:Pavona_clavus:A     0.00720086 0.1165208
+## 26:Pocillopora_sp:A-35.5:Pavona_clavus:A     0.24395086 0.0000000
+## 32.5:Pocillopora_sp:A-35.5:Pavona_clavus:A   0.25920086 0.0000000
+## 34:Pocillopora_sp:A-35.5:Pavona_clavus:A     0.24657586 0.0000000
+## 35.5:Pocillopora_sp:A-35.5:Pavona_clavus:A   0.14145086 0.4151525
+## 26:Pavona_clavus:B-35.5:Pavona_clavus:A      0.19407586 0.0004155
+## 32.5:Pavona_clavus:B-35.5:Pavona_clavus:A    0.19820086 0.0002002
+## 34:Pavona_clavus:B-35.5:Pavona_clavus:A      0.17395086 0.0107101
+## 35.5:Pavona_clavus:B-35.5:Pavona_clavus:A    0.08820086 1.0000000
+## 26:Pocillopora_sp:B-35.5:Pavona_clavus:A     0.26457586 0.0000000
+## 32.5:Pocillopora_sp:B-35.5:Pavona_clavus:A   0.25182586 0.0000000
+## 34:Pocillopora_sp:B-35.5:Pavona_clavus:A     0.22845086 0.0000006
+## 35.5:Pocillopora_sp:B-35.5:Pavona_clavus:A   0.10170086 0.9999505
+## 32.5:Pocillopora_sp:A-26:Pocillopora_sp:A    0.09657586 0.9999989
+## 34:Pocillopora_sp:A-26:Pocillopora_sp:A      0.08395086 1.0000000
+## 35.5:Pocillopora_sp:A-26:Pocillopora_sp:A   -0.02117414 0.0023332
+## 26:Pavona_clavus:B-26:Pocillopora_sp:A       0.03145086 0.7289895
+## 32.5:Pavona_clavus:B-26:Pocillopora_sp:A     0.03557586 0.8350667
+## 34:Pavona_clavus:B-26:Pocillopora_sp:A       0.01132586 0.1790094
+## 35.5:Pavona_clavus:B-26:Pocillopora_sp:A    -0.07442414 0.0000001
+## 26:Pocillopora_sp:B-26:Pocillopora_sp:A      0.10195086 0.9999422
+## 32.5:Pocillopora_sp:B-26:Pocillopora_sp:A    0.08920086 1.0000000
+## 34:Pocillopora_sp:B-26:Pocillopora_sp:A      0.06582586 0.9999987
+## 35.5:Pocillopora_sp:B-26:Pocillopora_sp:A   -0.06092414 0.0000016
+## 34:Pocillopora_sp:A-32.5:Pocillopora_sp:A    0.06870086 0.9999999
+## 35.5:Pocillopora_sp:A-32.5:Pocillopora_sp:A -0.03642414 0.0001711
+## 26:Pavona_clavus:B-32.5:Pocillopora_sp:A     0.01620086 0.2807115
+## 32.5:Pavona_clavus:B-32.5:Pocillopora_sp:A   0.02032586 0.3897555
+## 34:Pavona_clavus:B-32.5:Pocillopora_sp:A    -0.00392414 0.0300924
+## 35.5:Pavona_clavus:B-32.5:Pocillopora_sp:A  -0.08967414 0.0000000
+## 26:Pocillopora_sp:B-32.5:Pocillopora_sp:A    0.08670086 1.0000000
+## 32.5:Pocillopora_sp:B-32.5:Pocillopora_sp:A  0.07395086 1.0000000
+## 34:Pocillopora_sp:B-32.5:Pocillopora_sp:A    0.05057586 0.9941077
+## 35.5:Pocillopora_sp:B-32.5:Pocillopora_sp:A -0.07617414 0.0000001
+## 35.5:Pocillopora_sp:A-34:Pocillopora_sp:A   -0.02379914 0.0015193
+## 26:Pavona_clavus:B-34:Pocillopora_sp:A       0.02882586 0.6510983
+## 32.5:Pavona_clavus:B-34:Pocillopora_sp:A     0.03295086 0.7703220
+## 34:Pavona_clavus:B-34:Pocillopora_sp:A       0.00870086 0.1368837
+## 35.5:Pavona_clavus:B-34:Pocillopora_sp:A    -0.07704914 0.0000001
+## 26:Pocillopora_sp:B-34:Pocillopora_sp:A      0.09932586 0.9999901
+## 32.5:Pocillopora_sp:B-34:Pocillopora_sp:A    0.08657586 1.0000000
+## 34:Pocillopora_sp:B-34:Pocillopora_sp:A      0.06320086 0.9999891
+## 35.5:Pocillopora_sp:B-34:Pocillopora_sp:A   -0.06354914 0.0000009
+## 26:Pavona_clavus:B-35.5:Pocillopora_sp:A     0.13395086 0.6472597
+## 32.5:Pavona_clavus:B-35.5:Pocillopora_sp:A   0.13807586 0.5181049
+## 34:Pavona_clavus:B-35.5:Pocillopora_sp:A     0.11382586 0.9897376
+## 35.5:Pavona_clavus:B-35.5:Pocillopora_sp:A   0.02807586 0.6279438
+## 26:Pocillopora_sp:B-35.5:Pocillopora_sp:A    0.20445086 0.0000640
+## 32.5:Pocillopora_sp:B-35.5:Pocillopora_sp:A  0.19170086 0.0006270
+## 34:Pocillopora_sp:B-35.5:Pocillopora_sp:A    0.16832586 0.0237623
+## 35.5:Pocillopora_sp:B-35.5:Pocillopora_sp:A  0.04157586 0.9389513
+## 32.5:Pavona_clavus:B-26:Pavona_clavus:B      0.08545086 1.0000000
+## 34:Pavona_clavus:B-26:Pavona_clavus:B        0.06120086 0.9999577
+## 35.5:Pavona_clavus:B-26:Pavona_clavus:B     -0.02454914 0.0013417
+## 26:Pocillopora_sp:B-26:Pavona_clavus:B       0.15182586 0.1703223
+## 32.5:Pocillopora_sp:B-26:Pavona_clavus:B     0.13907586 0.4869727
+## 34:Pocillopora_sp:B-26:Pavona_clavus:B       0.11570086 0.9824705
+## 35.5:Pocillopora_sp:B-26:Pavona_clavus:B    -0.01104914 0.0111092
+## 34:Pavona_clavus:B-32.5:Pavona_clavus:B      0.05707586 0.9995781
+## 35.5:Pavona_clavus:B-32.5:Pavona_clavus:B   -0.02867414 0.0006687
+## 26:Pocillopora_sp:B-32.5:Pavona_clavus:B     0.14770086 0.2516889
+## 32.5:Pocillopora_sp:B-32.5:Pavona_clavus:B   0.13495086 0.6162706
+## 34:Pocillopora_sp:B-32.5:Pavona_clavus:B     0.11157586 0.9950245
+## 35.5:Pocillopora_sp:B-32.5:Pavona_clavus:B  -0.01517414 0.0059957
+## 35.5:Pavona_clavus:B-34:Pavona_clavus:B     -0.00442414 0.0281456
+## 26:Pocillopora_sp:B-34:Pavona_clavus:B       0.17195086 0.0143093
+## 32.5:Pocillopora_sp:B-34:Pavona_clavus:B     0.15920086 0.0760966
+## 34:Pocillopora_sp:B-34:Pavona_clavus:B       0.13582586 0.5888602
+## 35.5:Pocillopora_sp:B-34:Pavona_clavus:B     0.00907586 0.1423843
+## 26:Pocillopora_sp:B-35.5:Pavona_clavus:B     0.25770086 0.0000000
+## 32.5:Pocillopora_sp:B-35.5:Pavona_clavus:B   0.24495086 0.0000000
+## 34:Pocillopora_sp:B-35.5:Pavona_clavus:B     0.22157586 0.0000023
+## 35.5:Pocillopora_sp:B-35.5:Pavona_clavus:B   0.09482586 0.9999998
+## 32.5:Pocillopora_sp:B-26:Pocillopora_sp:B    0.06857586 0.9999999
+## 34:Pocillopora_sp:B-26:Pocillopora_sp:B      0.04520086 0.9725104
+## 35.5:Pocillopora_sp:B-26:Pocillopora_sp:B   -0.08154914 0.0000000
+## 34:Pocillopora_sp:B-32.5:Pocillopora_sp:B    0.05795086 0.9997282
+## 35.5:Pocillopora_sp:B-32.5:Pocillopora_sp:B -0.06879914 0.0000003
+## 35.5:Pocillopora_sp:B-34:Pocillopora_sp:B   -0.04542414 0.0000324</code></pre>
 </div>
 
 

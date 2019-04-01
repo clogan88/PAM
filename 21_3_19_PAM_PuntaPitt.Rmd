@@ -13,41 +13,73 @@ library(ggplot2)
 
 ## Load data
 ```{r load data, include = FALSE}
-site = "PuntaPitt2_HeatStress_03-26-2019"
-PAMdata <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/CBASS_PuntaPitt2_March2019/2019_03_26_heat_PuntaPitt_foranalysis.csv")
+site = "PuntaPitt2_03-26-2019"
+
+PAM_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/CBASS_PuntaPitt2_March2019/2019_03_26_heat_PuntaPitt_foranalysis.csv")
+
+PAM_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/CBASS_PuntaPitt2_March2019/2019_03_27_cold_PuntaPitt_foranalysis.csv")
 ```
 
 ## Scatterplot with lm fit by species
 ```{r scatterplot}
-ggplot(PAMdata,aes(x = Treatment, y = PAM)) +
+# heat stress
+ggplot(PAM_heat,aes(x = Treatment, y = PAM)) +
   geom_point() +
   aes(color = Species) +
   theme_bw() +
   stat_smooth(method = "lm", formula = y ~ exp(x)) + # try exponential model
   ggtitle(site) +
-  ggsave(file=paste0(site,"_scatter.png"), width = 5, height = 3)
+  ggsave(file=paste0(site,"heat_scatter.png"), width = 5, height = 3)
+
+# cold stress
+ggplot(PAM_cold,aes(x = Treatment, y = PAM)) +
+  geom_point() +
+  aes(color = Species) +
+  theme_bw() +
+  stat_smooth(method = "lm", formula = y ~ log(x)) + # try log model
+  ggtitle(site) +
+  ggsave(file=paste0(site,"cold_scatter.png"), width = 5, height = 3)
 ```
 
 
 ## Boxplot by species
 ```{r boxplot}
-ggplot(PAMdata,aes(x = Treatment, y = PAM, color = Species)) +
+# heat stress
+ggplot(PAM_heat,aes(x = Treatment, y = PAM, color = Species)) +
   geom_boxplot() +
   aes(group = Treatment) +
   facet_grid(. ~ Species) +
   theme_bw() +
   ggtitle(site) +
-  ggsave(file=paste0(site,"_boxplot.png"), width = 5, height = 3)
+  ggsave(file=paste0(site,"_heat_boxplot.png"), width = 5, height = 3)
+
+# cold stress
+ggplot(PAM_cold,aes(x = Treatment, y = PAM, color = Species)) +
+  geom_boxplot() +
+  aes(group = Treatment) +
+  facet_grid(. ~ Species) +
+  theme_bw() +
+  ggtitle(site) +
+  ggsave(file=paste0(site,"_cold_boxplot.png"), width = 5, height = 3)
+
 ```
 
 ## Exponential model fitting & stats
 ```{r model fitting}
-mod_exp <- lm(PAM ~ exp(Treatment) + Species, data = PAMdata)
-summary(mod_exp)
+mod_heat <- lm(PAM ~ exp(Treatment) * Species * Replicate * Geno, data = PAM_heat)
+summary(mod_heat)
+
+mod_cold <- lm(PAM ~ log(Treatment) * Species * Replicate * Geno, data = PAM_cold)
+summary(mod_cold)
 ```
 ## 2 way ANOVA model fitting & Tukey HSD
 ```{r ANOVA}
-mod_anova <- aov(PAM ~ factor(Treatment) + Species, data = PAMdata)
-summary(mod_anova)
-TukeyHSD(mod_anova)
+mod_anova_heat <- aov(PAM ~ factor(Treatment) * Species * Replicate * Geno, data = PAM_heat)
+mod_anova_cold <- aov(PAM ~ factor(Treatment) * Species * Replicate * Geno, data = PAM_cold)
+
+summary(mod_anova_heat)
+summary(mod_anova_cold)
+
+TukeyHSD(mod_anova_heat)
+TukeyHSD(mod_anova_cold)
 ```
