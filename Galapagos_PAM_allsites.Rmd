@@ -1,0 +1,86 @@
+---
+title: "Galapagos_PAM_allsites"
+author: "Cheryl Logan"
+date: "4/1/2019"
+output: html_document
+---
+
+## Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+setwd("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/")
+```
+
+## Load data
+```{r load data, include = FALSE}
+Flo_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_17_heat_Floreana_foranalysis.csv")
+
+Flo_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_18_cold_Floreana_foranalysis.csv")
+
+Isa_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_19_heat_Isabela_foranalysis.csv")
+
+Isa_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_20_cold_Isabela_foranalysis.csv")
+
+Pitt_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_26_heat_PuntaPitt_foranalysis.csv")
+
+Pitt_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_27_cold_PuntaPitt_foranalysis.csv")
+```
+
+## Join files into new data frame
+```{r load data, include = FALSE}
+PAM_all <- bind_rows(Flo_heat, Flo_cold, Isa_heat, Isa_cold, Pitt_heat, Pitt_cold)
+
+PAM_all <- PAM_all %>%
+  select(Site, Species, Treatment, PAM, Replicate, Geno) %>%
+  mutate(Site = as.factor(Site))
+```
+
+## Scatterplot with lm fit by species
+```{r scatterplot}
+# heat stress
+ggplot(PAM_all,aes(x = Treatment, y = PAM)) +
+  geom_point() +
+  aes(color = Species) +
+  theme_bw() +
+  facet_grid(. ~ Site) +
+  #stat_smooth(method = "lm", formula = y ~ exp(x)) + # try exponential model
+  ggtitle("PAM All Sites") +
+  ggsave("PAM_allsites_scatter.png", width = 5, height = 3)
+```
+
+
+## Boxplot by species
+```{r boxplot}
+# heat stress
+ggplot(PAM_all,aes(x = Treatment, y = PAM, color = Species)) +
+  geom_boxplot() +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Site) +
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Maximum Temperature (degC)") +
+  xlim(10, 37) +
+  theme_bw() +
+  ggtitle("PAM All Sites") +
+  ggsave("PAM_allsites_boxplot.png", width = 10, height = 6)
+```
+
+## Exponential model fitting & stats
+```{r model fitting}
+mod_heat <- lm(PAM ~ exp(Treatment) * Species * Replicate * Geno, data = PAM_heat)
+summary(mod_heat)
+
+mod_cold <- lm(PAM ~ log(Treatment) * Species * Replicate * Geno, data = PAM_cold)
+summary(mod_cold)
+```
+## 2 way ANOVA model fitting & Tukey HSD
+```{r ANOVA}
+mod_anova_heat <- aov(PAM ~ factor(Treatment) * Species * Replicate * Geno, data = PAM_heat)
+mod_anova_cold <- aov(PAM ~ factor(Treatment) * Species * Replicate * Geno, data = PAM_cold)
+
+summary(mod_anova_heat)
+summary(mod_anova_cold)
+
+TukeyHSD(mod_anova_heat)
+TukeyHSD(mod_anova_cold)
+```
