@@ -25,11 +25,15 @@ Isa_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_
 Pitt_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_26_heat_PuntaPitt_foranalysis.csv")
 
 Pitt_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_27_cold_PuntaPitt_foranalysis.csv")
+
+Esp_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_04_02_heat_Espanola_foranalysis.csv")
+
+Esp_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_04_03_cold_Espanola_foranalysis.csv")
 ```
 
 ## Join files into new data frame
 ```{r load data, include = FALSE}
-PAM_all <- bind_rows(Flo_heat, Flo_cold, Isa_heat, Isa_cold, Pitt_heat, Pitt_cold)
+PAM_all <- bind_rows(Flo_heat, Flo_cold, Isa_heat, Isa_cold, Pitt_heat, Pitt_cold, Esp_heat, Esp_cold)
 
 PAM_all <- PAM_all %>%
   select(Site, Species, Treatment, PAM, Replicate, Geno) %>%
@@ -62,7 +66,7 @@ ggplot(PAM_all,aes(x = Treatment, y = PAM, color = Species)) +
   xlim(10, 37) +
   theme_bw() +
   ggtitle("PAM All Sites") +
-  ggsave("PAM_allsites_boxplot.png", width = 10, height = 6)
+  ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
 ```
 
 ## Exponential model fitting & stats
