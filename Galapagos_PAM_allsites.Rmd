@@ -9,82 +9,216 @@ output: html_document
 ```{r setup, include = FALSE}
 library(tidyverse)
 library(ggplot2)
-setwd("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/")
+library(RColorBrewer)
+library(ggpubr)
+library(thermPerf)
 ```
 
 ## Load data
 ```{r load data, include = FALSE}
-Flo_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_17_heat_Floreana_foranalysis.csv")
+wd <- "/Users/loga8761/Google Drive/Galapagos/CBASS_Galapagos/PAM/PAM_allsites_forR/PAM_allsites_forR_color/"
 
-Flo_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_18_cold_Floreana_foranalysis.csv")
+Flo_heat <- read_csv(file=paste0(wd,"2019_03_17_heat_Floreana_foranalysis.csv"))
+# remove data from Floreana 31C temp (messed up temp profile for that run)
+excludes <- Flo_heat %>%
+  filter(Treatment == 31, Replicate == 'A')
+Flo_heat <- anti_join(Flo_heat, excludes)
 
-Isa_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_19_heat_Isabela_foranalysis.csv")
+Flo_cold <- read_csv(file=paste0(wd,"2019_03_18_cold_Floreana_foranalysis.csv"))
 
-Isa_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_20_cold_Isabela_foranalysis.csv")
+Isa_heat <- read_csv(file=paste0(wd,"2019_03_19_heat_Isabela_foranalysis.csv"))
+Isa_cold <- read_csv(file=paste0(wd,"2019_03_20_cold_Isabela_foranalysis.csv"))
 
-Pitt_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_26_heat_PuntaPitt_foranalysis.csv")
+Pitt_heat <- read_csv(file=paste0(wd,"2019_03_26_heat_PuntaPitt_foranalysis.csv"))
+Pitt_cold <- read_csv(file=paste0(wd,"2019_03_27_cold_PuntaPitt_foranalysis.csv"))
 
-Pitt_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_03_27_cold_PuntaPitt_foranalysis.csv")
-
-Esp_heat <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_04_02_heat_Espanola_foranalysis.csv")
-
-Esp_cold <- read_csv("/Users/loga8761/Google Drive/Galapagos/CBASS/PAM_allsites_forR/2019_04_03_cold_Espanola_foranalysis.csv")
+Esp_heat <- read_csv(file=paste0(wd,"2019_04_02_heat_Espanola_foranalysis.csv"))
+Esp_cold <- read_csv(file=paste0(wd,"2019_04_03_cold_Espanola_foranalysis.csv"))
 ```
 
 ## Join files into new data frame
-```{r load data, include = FALSE}
+```{r join data, include = FALSE}
 PAM_all <- bind_rows(Flo_heat, Flo_cold, Isa_heat, Isa_cold, Pitt_heat, Pitt_cold, Esp_heat, Esp_cold)
+PAM_heat <- bind_rows(Flo_heat, Isa_heat, Pitt_heat, Esp_heat)
+PAM_cold <- bind_rows(Flo_cold, Isa_cold, Pitt_cold, Esp_cold)
 
 PAM_all <- PAM_all %>%
-  select(Site, Species, Treatment, PAM, Replicate, Geno) %>%
-  mutate(Site = as.factor(Site))
+  select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
+  mutate(Site = as.factor(Site)) %>%
+  mutate(ColorChange = Color_2 - Color_1)
+
+PAM_heat <- PAM_heat %>%
+  select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
+  mutate(Site = as.factor(Site)) %>%
+  mutate(ColorChange = Color_2 - Color_1)
+
+PAM_cold <- PAM_cold %>%
+  select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
+  mutate(Site = as.factor(Site)) %>%
+  mutate(ColorChange = Color_2 - Color_1)
+```
+
+## Compare CoralWatch Color Change with PAM
+```{r color v PAM}
+# using ggpubr to make the plot
+sp <- ggscatter(PAM_all, x = "ColorChange", y = "PAM",
+   color = "Species", 
+   add = "reg.line", conf.int = TRUE)
+sp + stat_cor(aes(color = Species), label.x = -4) +
+   ggtitle("PAM versus CoralWatch Color Change - All Sites") +
+  ylim(0, .8) +
+  theme_bw() +
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("CoralWatch Color Change") +
+  ggsave("PAM_Color_allsites_scatter.png", width = 7, height = 5)
+
+# using ggplot2 to make the plot
+# ggplot(PAM_all, aes(x = ColorChange, y = PAM)) +
+#   geom_point() +
+#   aes(color = Species) +
+#   facet_wrap(~ Species) +
+#   theme_bw() +
+#   ylab("Photochemical Efficency (Fv/Fm)") +
+#   xlab("CoralWatch Color Change") +
+#   stat_cor(method = "pearson", label.x = 2.5, label.y = .2)
+#   ggtitle("PAM versus CoralWatch Color Change - All Sites") +
+#   ggsave("PAM_Color_allsites_scatter.png", width = 7, height = 5)
+#   #stat_smooth(method = "lm", formula = y ~ x) + # try linear model
+#   
+#   ggtitle("PAM versus CoralWatch Color Change - All Sites") +
+#   ggsave("PAM_Color_allsites_scatter.png", width = , height = 5)
+
+summary(lm(PAM ~ ColorChange, PAM_all))
+```
+
+## Compare CoralWatch Color Change with PAM
+```{r color density}
+# remove data from Floreana 31C temp
+ggplot(PAM_all, aes(x = ColorChange)) +
+  geom_density() +
+  aes(color = Species) +
+  facet_wrap(~ Treatment) +
+  theme_bw() +
+  ylab("Frequency") +
+  xlab("Color Change") +
+  xlim(c(-4,0)) +
+  ggtitle("Temperature versus CoralWatch Color Change - All Sites") +
+  ggsave("ColorvTempHistogram_allsites_scatter.png", width = 7, height = 5)
 ```
 
 ## Scatterplot with lm fit by species
-```{r scatterplot}
-# heat stress
-ggplot(PAM_all,aes(x = Treatment, y = PAM)) +
-  geom_point() +
-  aes(color = Species) +
+```{r jitterplot}
+# add second axis to plot Color and PAM on same figure
+ggplot(PAM_all, aes(x = Treatment, y = PAM)) +
+  geom_jitter(alpha = 0.3, color = "#009E73",colour = "PAM") +
+  theme(axis.title.y = element_text(colour = "#009E73")) +
+  
+
+  #add color data
+  geom_jitter(aes(y = ((ColorChange + 1)/6)),alpha = 0.3, color = "steelblue") +
+  scale_y_continuous(sec.axis = sec_axis(~.*6 - 1, name = "CoralWatch Color Change (blue)")) +
+  theme(axis.title.y = element_text(colour = "steelblue")) +
+  
   theme_bw() +
-  facet_grid(. ~ Site) +
-  #stat_smooth(method = "lm", formula = y ~ exp(x)) + # try exponential model
-  ggtitle("PAM All Sites") +
-  ggsave("PAM_allsites_scatter.png", width = 5, height = 3)
+  facet_grid(Species ~ Site) +
+  ylab("PAM (Fv/Fm) (green)") +
+  xlab("Temperature [°C]") +
+  
+  ggtitle("PAM and Color All Sites") +
+  ggsave("PAMvColor_allsites_scatter.png", width = 7, height = 5)
 ```
 
 
-## Boxplot by species
+## Boxplot by species & site
 ```{r boxplot}
-# heat stress
 ggplot(PAM_all,aes(x = Treatment, y = PAM, color = Species)) +
-  geom_boxplot() +
+  geom_boxplot(outlier.size = 0.3) +
   aes(group = Treatment) +
   facet_grid(Species ~ Site) +
   ylab("Photochemical Efficency (Fv/Fm)") +
-  xlab("Maximum Temperature (degC)") +
-  xlim(10, 37) +
+  xlab("Treatment Temperature (degC)") +
   theme_bw() +
   ggtitle("PAM All Sites") +
   ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
 ```
 
-## Exponential model fitting & stats
-```{r model fitting}
-mod_heat <- lm(PAM ~ exp(Treatment) * Species * Replicate * Geno, data = PAM_heat)
+## Plots by ramp type
+```{r PAM plot by ramp type}
+ggplot(PAM_heat,aes(x = Treatment, y = PAM, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ exp(x)) + # try linear model
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Heat Ramp PAM All Sites") +
+  ggsave("PAM_heatonly_allsites_fit.png", width = 7, height = 3)
+
+ggplot(PAM_cold,aes(x = Treatment, y = PAM, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ log(x)) + # try linear model
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Cold Ramp PAM All Sites") +
+  ggsave("PAM_coldonly_allsites_fit.png", width = 7, height = 3)
+```
+```{r PAM plot by ramp type}
+ggplot(PAM_heat,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ exp(x)) + # try linear model
+  ylab("CoralWatch Color Change") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Heat Ramp Color All Sites") +
+  ggsave("Color_heatonly_allsites_fit.png", width = 7, height = 3)
+
+ggplot(PAM_cold,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ log(x)) + # try linear model
+  ylab("CoralWatch Color Change") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Cold Ramp Color All Sites") +
+  ggsave("Color_coldonly_allsites_fit.png", width = 7, height = 3)
+```
+
+## PAM-Exponential model fitting & stats
+```{r lm models}
+mod_heat <- lm(PAM ~ exp(Treatment) * Species * Site, data = PAM_heat)
 summary(mod_heat)
 
-mod_cold <- lm(PAM ~ log(Treatment) * Species * Replicate * Geno, data = PAM_cold)
+mod_cold <- lm(PAM ~ log(Treatment) * Species * Site, data = PAM_cold)
 summary(mod_cold)
 ```
-## 2 way ANOVA model fitting & Tukey HSD
-```{r ANOVA}
-mod_anova_heat <- aov(PAM ~ factor(Treatment) * Species * Replicate * Geno, data = PAM_heat)
-mod_anova_cold <- aov(PAM ~ factor(Treatment) * Species * Replicate * Geno, data = PAM_cold)
 
-summary(mod_anova_heat)
-summary(mod_anova_cold)
+## Color-Exponential model fitting & stats
+```{r lm models}
+mod_heat <- lm(ColorChange ~ exp(Treatment) * Species * Site, data = PAM_heat)
+summary(mod_heat)
 
-TukeyHSD(mod_anova_heat)
-TukeyHSD(mod_anova_cold)
+mod_cold <- lm(ColorChange ~ log(Treatment) * Species * Site, data = PAM_cold)
+summary(mod_cold)
+```
+
+## PAM 2 way ANOVA model fitting & Tukey HSD
+```{r ANOVA stats}
+mod_anova_all <- aov(PAM ~ factor(Treatment) * Species * Site, data = PAM_all)
+summary(mod_anova_all)
+TukeyHSD(mod_anova_all)
+```
+
+
+## Color 2 way ANOVA model fitting & Tukey HSD
+```{r ANOVA stats}
+mod_anova_all <- aov(ColorChange ~ factor(Treatment) * Species * Site, data = PAM_all)
+summary(mod_anova_all)
+TukeyHSD(mod_anova_all)
 ```
