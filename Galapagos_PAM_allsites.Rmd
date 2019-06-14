@@ -12,6 +12,7 @@ library(ggplot2)
 library(RColorBrewer)
 library(ggpubr)
 library(thermPerf)
+library(nlme)
 ```
 
 ## Load data
@@ -34,18 +35,71 @@ Pitt_cold <- read_csv(file=paste0(wd,"2019_03_27_cold_PuntaPitt_foranalysis.csv"
 
 Esp_heat <- read_csv(file=paste0(wd,"2019_04_02_heat_Espanola_foranalysis.csv"))
 Esp_cold <- read_csv(file=paste0(wd,"2019_04_03_cold_Espanola_foranalysis.csv"))
+
+Dar_heat <- read_csv(file=paste0(wd,"2019_05_14_heat_Darwin_foranalysis.csv"))
+Dar_cold <- read_csv(file=paste0(wd,"2019_05_15_cold_Darwin_foranalysis.csv"))
+
+# test Wolf heat replicates
+#Wol_heat <- read_csv(file=paste0(wd,"2019_05_16_heat_Wolf_foranalysis.csv"))
+# Wol_B <- Wol_heat %>%
+#   filter(Replicate == 'A')
+# Wol_A <- Wol_heat %>%
+#   filter(Replicate == 'B')
+# Wol_heat <- anti_join(Wol_heat, Wol_B)
+
+#Wol_cold <- read_csv(file=paste0(wd,"2019_05_17_cold_Wolf_foranalysis.csv"))
+# remove data from Wolf1 Cold Run 26C temp (temp up to 34 & 42C for that run)
+#excludes <- Wol_cold %>%
+#  filter(Treatment == 26, Replicate == 'A')
+#Wol_cold <- anti_join(Wol_cold, excludes)
+
+Wol_heat2 <- read_csv(file=paste0(wd,"2019_05_18_heat_Wolf2_repeat_foranalysis.csv"))
+Wol_cold2 <- read_csv(file=paste0(wd,"2019_05_19_cold_Wolf2_repeat_foranalysis.csv"))
+
+Acad_heat <- read_csv(file=paste0(wd,"2019_05_21_heat_AcademyBay_foranalysis.csv"))
+Acad_cold <- read_csv(file=paste0(wd,"2019_05_22_cold_AcademyBay_foranalysis.csv"))
+# remove data from Acad_cold 16C temp (temps for to 13C or 41Cfor that run)
+excludes <- Acad_cold %>%
+  filter(Treatment == 16)
+Acad_cold <- anti_join(Acad_cold, excludes)
+
+excludes <- Acad_cold %>%
+  filter(Treatment == 20, Replicate == 'A')
+Acad_cold <- anti_join(Acad_cold, excludes)
+
+excludes <- Acad_cold %>%
+  filter(Treatment == 12, Replicate == 'A')
+Acad_cold <- anti_join(Acad_cold, excludes)
+
 ```
+
+## Compare Wolf Replicate tanks
+```{r boxplot}
+ggplot(Wol_heat2,aes(x = Treatment, y = PAM, color = Replicate)) +
+  geom_boxplot(outlier.size = 0.3) +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Replicate) +
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Temperature [°C]") +
+  theme_bw() 
+  #ggtitle("PAM All Sites") +
+  #ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
+```
+
 
 ## Join files into new data frame
 ```{r join data, include = FALSE}
-PAM_all <- bind_rows(Flo_heat, Flo_cold, Isa_heat, Isa_cold, Pitt_heat, Pitt_cold, Esp_heat, Esp_cold)
-PAM_heat <- bind_rows(Flo_heat, Isa_heat, Pitt_heat, Esp_heat)
-PAM_cold <- bind_rows(Flo_cold, Isa_cold, Pitt_cold, Esp_cold)
+PAM_all <- bind_rows(Flo_heat, Flo_cold, Isa_heat, Isa_cold, Pitt_heat, Pitt_cold, Esp_heat, Esp_cold, Dar_heat, Dar_cold, Wol_heat2, Wol_cold2, Acad_heat, Acad_cold)
+PAM_heat <- bind_rows(Flo_heat, Isa_heat, Pitt_heat, Esp_heat, Dar_heat, Wol_heat2, Acad_heat)
+PAM_cold <- bind_rows(Flo_cold, Isa_cold, Pitt_cold, Esp_cold, Dar_cold, Wol_cold2, Acad_cold)
 
 PAM_all <- PAM_all %>%
-  select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
-  mutate(Site = as.factor(Site)) %>%
-  mutate(ColorChange = Color_2 - Color_1)
+   select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
+   mutate(Site = as.factor(Site))  %>%
+   mutate(ColorChange = Color_2 - Color_1)
+
+Dar_Wolf2 <- PAM_all %>%
+  filter(Site %in% c("Darwin", "Wolf2"))
 
 PAM_heat <- PAM_heat %>%
   select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
@@ -56,6 +110,31 @@ PAM_cold <- PAM_cold %>%
   select(Site, Species, Treatment, PAM, Replicate, Geno, Color_1, Color_2) %>%
   mutate(Site = as.factor(Site)) %>%
   mutate(ColorChange = Color_2 - Color_1)
+
+write_csv(as.data.frame(PAM_all), "PAM_all.csv")
+```
+
+## Darwin/Wolf only - for report PNG
+```{r boxplot}
+ggplot(Dar_Wolf2,aes(x = Treatment, y = ColorChange, color = Site)) +
+  geom_boxplot(outlier.size = 0.3) +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Site) +
+  ylab("Visual Color Change (pre vs post stress)") +
+  xlab("Temperature [°C]") +
+  theme_bw() +
+  ggtitle("Darwin and Wolf Thermal Tolerance - Visual Color Change") +
+  ggsave("Color_DarwinWolf_boxplot.png", width = 7, height = 3)
+  
+  ggplot(Dar_Wolf2,aes(x = Treatment, y = PAM, color = Site)) +
+  geom_boxplot(outlier.size = 0.3) +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Site) +
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Temperature [°C]") +
+  theme_bw() +
+  ggtitle("Darwin and Wolf Thermal Tolerance - PAM Fluorometry") +
+  ggsave("PAM_DarwinWolf_boxplot.png", width = 7, height = 3)
 ```
 
 ## Compare CoralWatch Color Change with PAM
@@ -93,7 +172,7 @@ summary(lm(PAM ~ ColorChange, PAM_all))
 
 ## Compare CoralWatch Color Change with PAM
 ```{r color density}
-# remove data from Floreana 31C temp
+# remove data from Floreana 31C temp & Wolf 26C from one tank each
 ggplot(PAM_all, aes(x = ColorChange)) +
   geom_density() +
   aes(color = Species) +
@@ -129,17 +208,27 @@ ggplot(PAM_all, aes(x = Treatment, y = PAM)) +
 ```
 
 
-## Boxplot by species & site
+## Boxplots by species & site 
 ```{r boxplot}
 ggplot(PAM_all,aes(x = Treatment, y = PAM, color = Species)) +
   geom_boxplot(outlier.size = 0.3) +
   aes(group = Treatment) +
   facet_grid(Species ~ Site) +
   ylab("Photochemical Efficency (Fv/Fm)") +
-  xlab("Treatment Temperature (degC)") +
+  xlab("Temperature [°C]") +
   theme_bw() +
-  ggtitle("PAM All Sites") +
+  ggtitle("PAM Fluorometry - All Sites") +
   ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
+
+ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_boxplot(outlier.size = 0.3) +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Site) +
+  ylab("Visual Color Change (pre vs post stress)") +
+  xlab("Temperature [°C]") +
+  theme_bw() +
+  ggtitle("Visual Color Change - All Sites") +
+  ggsave("Color_allsites_boxplot.png", width = 7, height = 3)
 ```
 
 ## Plots by ramp type
@@ -147,7 +236,7 @@ ggplot(PAM_all,aes(x = Treatment, y = PAM, color = Species)) +
 ggplot(PAM_heat,aes(x = Treatment, y = PAM, color = Species)) +
   geom_jitter() +
   facet_grid(Species ~ Site) +
-  stat_smooth(method = "lm", formula = y ~ exp(x)) + # try linear model
+  stat_smooth(method = "lm", formula = y ~ exp(x), fill = "gray", colour = "black") + # try linear model
   ylab("Photochemical Efficency (Fv/Fm)") +
   xlab("Treatment Temperature (degC)") +
   theme_bw() +
@@ -158,7 +247,7 @@ ggplot(PAM_heat,aes(x = Treatment, y = PAM, color = Species)) +
 ggplot(PAM_cold,aes(x = Treatment, y = PAM, color = Species)) +
   geom_jitter() +
   facet_grid(Species ~ Site) +
-  stat_smooth(method = "lm", formula = y ~ log(x)) + # try linear model
+  stat_smooth(method = "lm", formula = y ~ log(x), fill = "gray", colour = "black") + # try linear model
   ylab("Photochemical Efficency (Fv/Fm)") +
   xlab("Treatment Temperature (degC)") +
   theme_bw() +
@@ -170,7 +259,7 @@ ggplot(PAM_cold,aes(x = Treatment, y = PAM, color = Species)) +
 ggplot(PAM_heat,aes(x = Treatment, y = ColorChange, color = Species)) +
   geom_jitter() +
   facet_grid(Species ~ Site) +
-  stat_smooth(method = "lm", formula = y ~ exp(x)) + # try linear model
+  stat_smooth(method = "lm", formula = y ~ exp(x), colour = "black",fill = "black") + # try linear model
   ylab("CoralWatch Color Change") +
   xlab("Treatment Temperature (degC)") +
   theme_bw() +
@@ -181,7 +270,7 @@ ggplot(PAM_heat,aes(x = Treatment, y = ColorChange, color = Species)) +
 ggplot(PAM_cold,aes(x = Treatment, y = ColorChange, color = Species)) +
   geom_jitter() +
   facet_grid(Species ~ Site) +
-  stat_smooth(method = "lm", formula = y ~ log(x)) + # try linear model
+  stat_smooth(method = "lm", formula = y ~ log(x), colour = "black", fill = "black") + # try linear model
   ylab("CoralWatch Color Change") +
   xlab("Treatment Temperature (degC)") +
   theme_bw() +
@@ -208,17 +297,75 @@ mod_cold <- lm(ColorChange ~ log(Treatment) * Species * Site, data = PAM_cold)
 summary(mod_cold)
 ```
 
-## PAM 2 way ANOVA model fitting & Tukey HSD
+## PAM Pocillopora ANOVA model fitting & Tukey HSD
 ```{r ANOVA stats}
-mod_anova_all <- aov(PAM ~ factor(Treatment) * Species * Site, data = PAM_all)
+
+PAM_all_poc <- PAM_all %>%
+  filter(Species == "Pocillopora_sp") 
+
+excludes <- PAM_all %>%
+  filter(Treatment == 14 |Treatment == 31)
+
+PAM_all_poc <- anti_join(PAM_all_poc, excludes)
+
+
+#Pocillopora
+mod_anova_all <- aov(PAM ~ factor(Site), data = PAM_all_poc)
 summary(mod_anova_all)
 TukeyHSD(mod_anova_all)
+
+ggplot(PAM_all_poc,aes(x = Site, y = PAM)) +
+  geom_boxplot(outlier.size = 0.3) +
+  facet_wrap(. ~ Treatment) +
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Pocillopora by Site") +
+  theme_bw() +
+  ylim(c(.4,.6)) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1)) +
+  ggsave("Poc_by_site.png", width = 7, height = 6)
 ```
 
 
-## Color 2 way ANOVA model fitting & Tukey HSD
+## PAM Pavona ANOVA model fitting & Tukey HSD
+```{r ANOVA stats}
+PAM_all_poc <- PAM_all %>%
+  filter(Species == "Pavona_clavus") 
+
+excludes <- PAM_all %>%
+  filter(Treatment == 14 |Treatment == 31)
+
+PAM_all_poc <- anti_join(PAM_all_poc, excludes)
+
+
+#Pavona
+mod_anova_all <- aov(PAM ~ factor(Treatment) * Site, data = PAM_all_poc)
+summary(mod_anova_all)
+TukeyHSD(mod_anova_all)
+
+ggplot(PAM_all_poc,aes(x = Site, y = PAM)) +
+  geom_boxplot(outlier.size = 0.3) +
+  facet_wrap(. ~ Treatment) +
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Pavona by Site") +
+  theme_bw() +
+  ylim(c(.4,.6)) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1)) +
+  ggsave("Pav_by_site.png", width = 7, height = 6)
+
+##HSD_PAM_aov <- TukeyHSD(mod_anova_all)
+#names(HSD_PAM_aov)
+#test <- (HSD_PAM_aov$`factor(Treatment):Species:Site`)
+
+#write_csv(as.data.frame(test), "test")
+
+```
+
+
+## Color N way ANOVA model fitting & Tukey HSD
 ```{r ANOVA stats}
 mod_anova_all <- aov(ColorChange ~ factor(Treatment) * Species * Site, data = PAM_all)
 summary(mod_anova_all)
-TukeyHSD(mod_anova_all)
+HSD_Color <- TukeyHSD(mod_anova_all)
 ```
