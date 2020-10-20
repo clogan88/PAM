@@ -1,0 +1,265 @@
+---
+title: "Galapagos_map"
+author: "Cheryl Logan"
+date: "9/10/2020"
+output: html_document
+---
+
+Make a map of Galapagos SSTs using data from https://www.bio-oracle.org/code.php
+
+The data available in Bio-ORACLE are documented in two peer reviewed articles that you should cite:
+
+Tyberghein L, Verbruggen H, Pauly K, Troupin C, Mineur F, De Clerck O (2012) Bio-ORACLE: A global environmental dataset for marine species distribution modelling. Global Ecology and Biogeography, 21, 272–281.
+[access publication]   [supporting information]
+
+Assis, J., Tyberghein, L., Bosh, S., Verbruggen, H., Serrão, E. A., & De Clerck, O. (2017). Bio-ORACLE v2.0: Extending marine data layers for bioclimatic modelling. Global Ecology and Biogeography.
+[access publication]   [supporting information]
+
+
+## Install packages
+```{r setup, include=FALSE}
+#install.packages("sdmpredictors")
+#install.packages("leaflet")
+```
+
+## Load Libraries
+```{r setup, include=FALSE}
+library(sdmpredictors)
+library(leaflet)
+```
+
+## Load Raster data
+
+```{r sdm datasets}
+# Explore datasets in the package
+list_datasets()
+list_layers()
+```
+
+## Load SST data
+
+```{r sdm datasets}
+sst <- load_layers(c("BO_sstmax", "BO_sstmean", "BO_sstmin", "BO_sstrange"))
+
+#Spatial location and grain
+#Global at 5 arcmin (c. 0.08° or 9.2 km at the equator).
+
+#Time period and grain
+#Present (2000–2014) environmental conditions based on monthly averages.
+```
+##  Plots
+
+```{r glps sst, echo=FALSE}
+# Easy download of raster file (sst mean)
+sst.mean <- load_layers("BO_sstmean")
+sst.max <- load_layers("BO_sstmax")
+sst.min <- load_layers("BO_sstmin")
+sst.range <- load_layers("BO_sstrange")
+
+# Crop raster to fit the Galapagos is
+glps.ext <- extent(-94,-88, -3,3)
+sst.mean.crop <- crop(sst.mean, glps.ext)
+sst.max.crop <- crop(sst.max, glps.ext)
+sst.min.crop <- crop(sst.min, glps.ext)
+sst.range.crop <- crop(sst.range, glps.ext)
+
+# Generate a nice color ramp and plot the map
+plot(sst.mean.crop,col=colorRampPalette(c("blue","purple", "yellow","red"))(255), axes=FALSE, box=FALSE)
+title(cex.sub = 1.25, sub = "Mean SST (ºC)")
+
+```
+# Sampling Sites 
+```{r}
+#Sites
+
+#Darwin
+points(cbind(-92,1.67), pch=21, cex=1, bg="red") 
+text(x=-92.7,y=1.7, labels="Darwin")
+
+#Wolf
+points(cbind(-91.8,1.38), pch=21, cex=1, bg="red") 
+text(x=-92.3,y=1.2, labels="Wolf")
+
+#Isabela
+points(cbind(-90.9,-.9), pch=21, cex=1, bg="red") 
+text(x=-91.5,y=-1.2, labels="Isabela")
+
+#Floreana
+points(cbind(-90.47,-1.25), pch=21, cex=1, bg="red") 
+text(x=-90.8,y=-1.7, labels="Floreana")
+
+#Espanola
+points(cbind(-89.68,-1.3), pch=21, cex=1, bg="red") 
+text(x=-89.1,y=-1.7, labels="Espanola")
+
+#San Cristobal
+points(cbind(-89.4,-.72), pch=21, cex=1, bg="red") 
+text(x=-89,y=-.5, labels="San Cristobal")
+
+```
+
+##  Plot Galapagos Is
+
+```{r sst, echo=FALSE}
+
+#pdf(file="sst.mean.crop.pdf") # uncomment to print to pdf
+
+plot(sst.mean.crop,main="Mean SST - Galapagos Islands", col=colorRampPalette(c("blue","purple", "yellow","red"))(255), 
+legend.args=list(text='Degrees C', side=4,font=2, line=2.5, cex=0.8),axes=TRUE, box=FALSE)
+
+#San Cristobal
+points(cbind(-89.4,-.72), pch=21, cex=2, bg="red") 
+text(x=-89,y=-.5, labels="San Cristobal")
+
+#Darwin
+points(cbind(-92,1.67), pch=21, cex=2, bg="red") 
+text(x=-92.7,y=1.7, labels="Darwin")
+
+#Wolf
+points(cbind(-91.8,1.38), pch=21, cex=2, bg="red") 
+text(x=-92.3,y=1.2, labels="Wolf")
+
+#Isabela
+points(cbind(-90.9,-.9), pch=21, cex=2, bg="red") 
+text(x=-91.5,y=-1.2, labels="Isabela")
+
+#Espanola
+points(cbind(-89.68,-1.3), pch=21, cex=2, bg="red") 
+text(x=-89.1,y=-1.7, labels="Espanola")
+
+#Floreana
+points(cbind(-90.47,-1.25), pch=21, cex=2, bg="red") 
+text(x=-90.8,y=-1.7, labels="Floreana")
+
+#dev.off() # uncomment to print to pdf
+
+```
+##  Plot SST Range - Galapagos Is
+
+```{r sst, echo=FALSE}
+
+#pdf(file="sst.range.crop.pdf")  # uncomment to print to pdf
+
+plot(sst.range.crop,main="SST Range - Galapagos Islands", col=colorRampPalette(c("blue","purple", "yellow","red"))(255), 
+legend.args=list(text='Delta degC', side=4,font=2, line=2.5, cex=0.8),axes=TRUE, box=TRUE)
+
+#San Cristobal
+points(cbind(-89.4,-.72), pch=21, cex=2, bg="red") 
+text(x=-89,y=-.5, labels="San Cristobal")
+
+#Darwin
+points(cbind(-92,1.67), pch=21, cex=2, bg="red") 
+text(x=-92.7,y=1.7, labels="Darwin")
+
+#Wolf
+points(cbind(-91.8,1.38), pch=21, cex=2, bg="red") 
+text(x=-92.3,y=1.2, labels="Wolf")
+
+#Isabela
+points(cbind(-90.9,-.9), pch=21, cex=2, bg="red") 
+text(x=-91.5,y=-1.2, labels="Isabela")
+
+#Espanola
+points(cbind(-89.68,-1.3), pch=21, cex=2, bg="red") 
+text(x=-89.1,y=-1.7, labels="Espanola")
+
+#Floreana
+points(cbind(-90.43,-1.3), pch=21, cex=2, bg="red") 
+text(x=-90.8,y=-1.7, labels="Floreana")
+
+#dev.off() # uncomment to print to pdf
+```
+
+
+##  Plot Min SST Galapagos Is
+
+```{r sst, echo=FALSE}
+plot(sst.min.crop,main="Min SST - Galapagos Islands", col=colorRampPalette(c("blue","purple", "yellow","red"))(255), 
+legend.args=list(text='Degrees C', side=4,font=2, line=2.5, cex=0.8),axes=FALSE, box=FALSE)
+
+#San Cristobal
+points(cbind(-89.4,-.72), pch=21, cex=1, bg="red") 
+text(x=-89,y=-.5, labels="San Cristobal")
+
+#Darwin
+points(cbind(-92,1.67), pch=21, cex=1, bg="red") 
+text(x=-92.7,y=1.7, labels="Darwin")
+
+#Wolf
+points(cbind(-91.8,1.38), pch=21, cex=1, bg="red") 
+text(x=-92.3,y=1.2, labels="Wolf")
+
+#Isabela
+points(cbind(-90.9,-.9), pch=21, cex=1, bg="red") 
+text(x=-91.5,y=-1.2, labels="Isabela")
+
+#Espanola
+points(cbind(-89.68,-1.3), pch=21, cex=1, bg="red") 
+text(x=-89.1,y=-1.7, labels="Espanola")
+
+#Floreana
+points(cbind(-90.43,-1.3), pch=21, cex=1, bg="red") 
+text(x=-90.8,y=-1.7, labels="Floreana")
+```
+
+##  Plot Max SST Galapagos Is
+
+```{r sst, echo=FALSE}
+plot(sst.max.crop,main="Max SST - Galapagos Islands", col=colorRampPalette(c("blue","purple", "yellow","red"))(255), 
+legend.args=list(text='Degrees C', side=4,font=2, line=2.5, cex=0.8),axes=FALSE, box=FALSE)
+
+#Darwin
+points(cbind(-92,1.67), pch=21, cex=1, bg="red") 
+text(x=-92.7,y=1.7, labels="Darwin")
+
+#Wolf
+points(cbind(-91.8,1.38), pch=21, cex=1, bg="red") 
+text(x=-92.3,y=1.2, labels="Wolf")
+
+#Isabela
+points(cbind(-90.9,-.9), pch=21, cex=1, bg="red") 
+text(x=-91.5,y=-1.2, labels="Isabela")
+
+#Floreana
+points(cbind(-90.43,-1.3), pch=21, cex=1, bg="red") 
+text(x=-90.8,y=-1.7, labels="Floreana")
+
+#Espanola
+points(cbind(-89.68,-1.3), pch=21, cex=1, bg="red") 
+text(x=-89.1,y=-1.7, labels="Espanola")
+
+#San Cristobal
+points(cbind(-89.4,-.72), pch=21, cex=1, bg="red") 
+text(x=-89,y=-.5, labels="San Cristobal")
+
+```
+
+
+```{r sst, echo=FALSE}
+#Sample code 2 : Extracting environmental information for a set of sites
+# Load packages (leaflet allows to load google maps)
+library(sdmpredictors)
+library(leaflet)
+
+# List layers avaialble in Bio-ORACLE v2
+layers.bio2 <- list_layers( datasets="Bio-ORACLE" )
+layers.bio2
+
+# Download environmental data layers (Mean SST, Max SST, Min SST, SST range)
+SST.glps <- load_layers( layercodes = c("BO_sstmean" , "BO_sstmax", "BO_sstmin", "BO_sstrange") , equalarea=FALSE, rasterstack=TRUE)
+
+# Generate a data.frame with the sites of interest
+my.sites <- data.frame(Name=c("Darwin","Wolf","Isabela","Floreana","Espanola","San Cristobal") , Lon=c(-92.7,-92.3,-91.5,-90.8,-89.1,-89) , Lat=c(1.7,1.2,-1.2,-1.3,-1.3,-.72) )
+my.sites
+
+# Visualise sites of interest in google maps
+m <- leaflet()
+m <- addTiles(m)
+m <- addMarkers(m, lng=my.sites$Lon, lat=my.sites$Lat, popup=my.sites$Name)
+m
+
+# Extract environmental values from layers
+my.sites.environment <- data.frame(Name=my.sites$Name) 
+extract(SST.glps,my.sites[,2:3]) 
+my.sites.environment
+```
