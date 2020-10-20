@@ -1,0 +1,128 @@
+---
+title: "GLPS_stats_forCOAST"
+author: "Cheryl Logan"
+date: "9/11/2020"
+output: html_document
+---
+
+## Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+install.packages("ggrepel")
+library(ggrepel)
+#library(thermPerf)
+library(nlme)
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library(forcats)
+```
+
+## Load data (from "Galapagos_PAM_allsites.Rmd")
+```{r load data, include = FALSE}
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Galapagos_all.csv")
+PAM_cold <- read_csv("/Users/loga8761/github/PAM/Galapagos_cold.csv")
+PAM_heat <- read_csv("/Users/loga8761/github/PAM/Galapagos_heat.csv")
+```
+
+## R Stats for Pocillopora
+
+```{r}
+## PAM Pocillopora ANOVA model fitting & Tukey HSD
+# https://www.datanovia.com/en/lessons/anova-in-r/#three-way-independent-anova
+# for COAST
+
+PAM_all_poc <- PAM_all 
+
+# Remove Isabela rep B because of temp issue in tank
+excludes <- PAM_all %>%
+  filter(Treatment == 14 |Treatment == 31 | Treatment == 20|Treatment == 32.5 |Site == "AcademyBay" |Site == "Floreana"| Treatment == 35.5 & Site == "Isabela" & Replicate == "B")
+
+PAM_all_poc <- anti_join(PAM_all_poc, excludes)
+```
+
+ANOVA stats
+```{r}
+#Load the data and inspect one random row by group combinations:
+PAM_all_poc %>% sample_n_by(Treatment, Site, Replicate, size = 1)
+
+#Compute the mean and the standard deviation (SD) of PAM by groups:
+PAM_all_poc %>%
+  group_by(Treatment, Site, Replicate) %>%
+  get_summary_stats(PAM, type = "mean_sd")
+
+#Create a box plot of PAM by treatment
+#note Isabela rep needs to be removed
+bxp <- ggboxplot(
+  PAM_all_poc, x = "Treatment", y = "PAM", 
+  color = "Replicate", palette = "jco", facet.by = "Site"
+  )
+bxp
+
+#ANOVA
+res.aov <- PAM_all_poc %>% anova_test(PAM ~ Treatment*Site*Replicate)
+res.aov
+
+#Pocillopora
+mod_anova_all <- aov(PAMChange ~ factor(Treatment)*Site*Replicate, data = PAM_all_poc)
+summary(mod_anova_all)
+TukeyHSD(mod_anova_all)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+
+p <- PAM_all_poc %>%
+  mutate(Site = fct_relevel(Site, 
+            "Darwin", "Wolf2", "Punta_Pitt", 
+            "Espanola", "Isabela")) %>%
+  ggplot( aes(x=Site, y=PAMChange)) +
+    geom_bar(stat="identity") +
+    xlab("")
+p
+
+```
+
+```{r,echo=TRUE}
+#Labels for re-ordering site names
+SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+
+#re-order site names
+p <- PAM_all_poc %>%
+  mutate(Site = fct_relevel(Site, 
+            "Darwin", "Wolf2", "Punta_Pitt", 
+            "Espanola", "Isabela"))  %>%
+  
+ggplot(aes(x = Site, y = PAMChange, fill = Site) )+
+  geom_violin(scale="width",outlier.size = 0.3, alpha=0.8) +
+  #geom_point(color = "black", size =.3, alpha = 0.8) +
+  #geom_text(aes(label=Geno)) +
+  #geom_violin(alpha=0.8) +
+  geom_boxplot(width=0.1, color="black", alpha=0.2) +
+  
+  #stat_summary(fun.y="mean",geom="crossbar", mapping=aes(ymin=..y.., ymax=..y..), 
+     #width=.5, position=position_dodge(),show.legend = FALSE) + 
+  #facet_wrap(Species ~ Treatment) +
+  facet_grid(Species ~ Treatment) +
+  ylab("Change in Fv/Fm") +
+  #xlab("Pocillopora by Site") +
+  theme_bw() +
+  #ylim(c(.5,-.45)) +
+  scale_x_discrete(labels= SiteLabels) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1)) +
+  ggsave("Violin_by_site.png", width = 7, height = 4) 
+  
+  p
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
