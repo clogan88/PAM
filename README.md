@@ -15,4 +15,4 @@ This is a working project folder. More Soon!
 
 ### Contact
 
-This data was collected by Dr. Cheryl Logan (clogan@csumb.edu) in collbroation with Dr. Margarita Brandt at Universidad San Francisco de Quito.
+This data was collected by Dr. Cheryl Logan (clogan@csumb.edu) 
