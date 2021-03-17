@@ -126,3 +126,25 @@ ggplot(aes(x = Site, y = PAMChange, fill = Site) )+
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+Create a plot with fraction of most heat- and cold- tolerant corals by site
+
+Need avaerge PAM reduction at 35.5
+```{r}
+# PAM_heat
+
+# Remove Isabela rep B because of temp issue in tank
+excludes <- PAM_all %>%
+  filter(Treatment == 12 | Treatment == 14 |Treatment == 31 | Treatment == 20| Treatment == 26 |Treatment == 34| Treatment == 32.5 |Site == "AcademyBay" |Site == "Floreana"| Treatment == 35.5 & Site == "Isabela" & Replicate == "B")
+
+PAM_all_poc <- anti_join(PAM_all_poc, excludes)
+
+
+ggplot(PAM_all_poc, aes(x = PAMChange, fill=Site) ) +
+  geom_histogram() +
+  ggtitle("Heat tolerance @ 35.5C by site") +
+  scale_color_brewer(palette="Dark2")+
+  scale_fill_brewer(palette="Dark2") +
+ theme_classic()
+
+```
