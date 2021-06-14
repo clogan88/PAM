@@ -17,7 +17,7 @@ library(nlme)
 
 ## Load raw data 
 ```{r load data, include = FALSE}
-wd <- "/Users/loga8761/Google Drive/Galapagos/CBASS_Galapagos/PAM/PAM_allsites_forR/PAM_allsites_forR_color/"
+wd <- "/Users/loga8761/Google Drive/Research/Projects/Galapagos/CBASS_Galapagos/PAM/PAM_allsites_forR/PAM_allsites_forR_color/"
 
 Flo_heat <- read_csv(file=paste0(wd,"2019_03_17_heat_Floreana_foranalysis.csv"))
 Flo_cold <- read_csv(file=paste0(wd,"2019_03_18_cold_Floreana_foranalysis.csv"))
@@ -43,7 +43,7 @@ Acad_cold <- read_csv(file=paste0(wd,"2019_05_22_cold_AcademyBay_foranalysis.csv
 
 ## Remove bad data including temperature excursions
 ```{r remove bad data, include = FALSE}
-# Remove Academy Bay 16C temp (temps for to 13C or 41C for that run)
+# Remove Academy Bay 16C temp (temps to 13C or 41C for that run)
 excludes <- Acad_cold %>%
   filter(Treatment == 16)
 Acad_cold <- anti_join(Acad_cold, excludes)
@@ -60,6 +60,11 @@ Acad_cold <- anti_join(Acad_cold, excludes)
 excludes <- Flo_heat %>%
   filter(Treatment == 31, Replicate == 'A')
 Flo_heat <- anti_join(Flo_heat, excludes)
+
+# Remove Isabela 35.5C from replicate B (messed up temp profile for that run)
+excludes <- Isa_heat %>%
+  filter(Treatment == 35.5, Replicate == 'B')
+Isa_heat <- anti_join(Isa_heat, excludes)
 ```
 
 ## Join files into new data frame with all data, heat-only or cold-only
@@ -100,7 +105,8 @@ ggplot(Control_PAM_bysite,aes(x = Site, y = PAM, color = RampType)) +
   ylab("Photochemical Efficency (Fv/Fm) at 26C") +
   xlab("Site") +
   theme_bw() +
-  ggtitle("Control PAM: All Sites by Ramp Type") +
+  ggtitle("Control PAM: All Sites by Ramp Type") 
+
   ggsave("Control_PAM_allsites_byRampType.png", width = 7, height = 3)
 ```
 
@@ -118,7 +124,8 @@ ungroup(PAM_all)
 Control_PAM_4merge <- Control_PAM_bygeno %>%
   select(Genobysiteramp, avg_26_bygeno,sd_26_bygeno) 
 
-PAM_all <- left_join(PAM_all, Control_PAM_4merge, by="Genobysiteramp")
+PAM_all <- left_join(PAM_all, Control_PAM_4merge, by="Genobysiteramp") #for some reason this dublicated all the rows
+PAM_all <- PAM_all[!duplicated(PAM_all), ] #removes duplicate rows
 
 #Calculate Genotype specific change in PAM from control
 PAM_all <- PAM_all %>%

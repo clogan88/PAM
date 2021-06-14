@@ -7,18 +7,23 @@ output: html_document
 
 ## Load libraries
 ```{r setup, include = FALSE}
+#library(thermPerf)
+#install.packages("ggrepel")
 library(tidyverse)
 library(ggplot2)
 library(RColorBrewer)
 library(ggpubr)
-install.packages("ggrepel")
 library(ggrepel)
-#library(thermPerf)
 library(nlme)
 library(tidyverse)
 library(ggpubr)
 library(rstatix)
 library(forcats)
+library(ggthemes)
+library(lme4)
+library(lmerTest)
+library(emmeans)
+library(car)
 ```
 
 ## Load data (from "Galapagos_PAM_allsites.Rmd")
@@ -35,13 +40,9 @@ PAM_heat <- read_csv("/Users/loga8761/github/PAM/Galapagos_heat.csv")
 # https://www.datanovia.com/en/lessons/anova-in-r/#three-way-independent-anova
 # for COAST
 
-PAM_all_poc <- PAM_all 
+PAM_all_poc <- PAM_all %>%
+  filter(Species == "Pocillopora_sp") 
 
-# Remove Isabela rep B because of temp issue in tank
-excludes <- PAM_all %>%
-  filter(Treatment == 14 |Treatment == 31 | Treatment == 20|Treatment == 32.5 |Site == "AcademyBay" |Site == "Floreana"| Treatment == 35.5 & Site == "Isabela" & Replicate == "B")
-
-PAM_all_poc <- anti_join(PAM_all_poc, excludes)
 ```
 
 ANOVA stats
@@ -91,17 +92,21 @@ p
 
 ```
 
+
+Plot used for 2020 COAST Proposedl
 ```{r,echo=TRUE}
 #Labels for re-ordering site names
-SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela","SantaCruz", "Floreana")
 
 #re-order site names
-p <- PAM_all_poc %>%
+p <- PAM_all %>%
   mutate(Site = fct_relevel(Site, 
             "Darwin", "Wolf2", "Punta_Pitt", 
             "Espanola", "Isabela"))  %>%
+  filter(Site != "AcademyBay"& Site != "Floreana") %>% # Remove sites with data issues
+  filter(Treatment != "14"& Site != "31") # Remove 14C and 31C temps since only used at Floreana
   
-ggplot(aes(x = Site, y = PAMChange, fill = Site) )+
+ggplot(p,aes(x = Site, y = PAMChange, fill = Site) )+
   geom_violin(scale="width",outlier.size = 0.3, alpha=0.8) +
   #geom_point(color = "black", size =.3, alpha = 0.8) +
   #geom_text(aes(label=Geno)) +
@@ -129,22 +134,119 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 
 Create a plot with fraction of most heat- and cold- tolerant corals by site
 
-Need avaerge PAM reduction at 35.5
 ```{r}
-# PAM_heat
+# For Pocillopora
+PAM_all_poc_clean <- PAM_all_poc %>%
+  filter(Site != "AcademyBay"& Site != "Floreana") %>%
+  filter(Species == "Pocillopora_sp") %>%
+  select(PAM, PAMChange,Site, Species,Treatment,Geno,Replicate)
+  
+# percent difference = abs((Value1 - Value2)/Value1)*100
+df <- group_by(PAM_all_poc_clean,Site, Species,Treatment,Geno) %>%
+  arrange(Site,Treatment,desc(Geno)) %>% # sort so replicates are next to each other
+  mutate(geno_mean = mean(PAMChange, na.rm = TRUE)) %>% # genotype mean
+  mutate(pct_diff = abs((PAMChange[1] - PAMChange[2])/PAMChange[1])*100, na.rm = TRUE)  
+  
 
-# Remove Isabela rep B because of temp issue in tank
-excludes <- PAM_all %>%
-  filter(Treatment == 12 | Treatment == 14 |Treatment == 31 | Treatment == 20| Treatment == 26 |Treatment == 34| Treatment == 32.5 |Site == "AcademyBay" |Site == "Floreana"| Treatment == 35.5 & Site == "Isabela" & Replicate == "B")
+    
+# Where are corals most heat tolerant?
+# Get mean and sd of PAMchange across all sites for each treatment
+# mutate adds onto a df (vs summarise which makes one row for each group)
+df2 <- group_by(df, Treatment) %>%
+  mutate(temp_mean=mean(geno_mean, na.rm = TRUE),temp_sd=sd(geno_mean, na.rm = TRUE)) %>% 
+  filter(geno_mean > (temp_mean + 1.5*temp_sd) )
 
-PAM_all_poc <- anti_join(PAM_all_poc, excludes)
+df2sort <- arrange(df2,Site,Treatment,desc(Geno))
 
+#not sure if this is actually using the right mean/sd for each temp -should be fewer than 8
 
-ggplot(PAM_all_poc, aes(x = PAMChange, fill=Site) ) +
-  geom_histogram() +
-  ggtitle("Heat tolerance @ 35.5C by site") +
-  scale_color_brewer(palette="Dark2")+
-  scale_fill_brewer(palette="Dark2") +
- theme_classic()
+ggplot(df2, aes(x = Site, fill= Site) ) +
+  geom_bar() +
+  facet_wrap(vars(Treatment)) +
+  ggtitle("Most tolerant colonies by site (at each temperature)") 
+
 
 ```
+
+
+Run Stats with Barshis code
+```{r}
+#start with heat stress data only
+
+pam.data <- PAM_all_poc_clean %>%
+  filter(Treatment == "26" | Treatment == "32.5"| Treatment == "34"| Treatment == "35.5") 
+
+pam.data$Geno <- as.factor(pam.data$Geno)
+pam.data$Site <-  as.factor(pam.data$Site)
+pam.data$Replicate <- as.factor(pam.data$Replicate)
+pam.data$Treatment <- as.factor(pam.data$Treatment)
+```
+
+
+```{r}
+# Mixed Effects model - random effect of replicate
+# Since the model is completely balanced the SS type I, II or III will provide the same result
+pam.cbass.model <- lmer(PAMChange ~ Site * Treatment + (1|Replicate), data = pam.data)
+anova(pam.cbass.model) # anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"
+ranova(pam.cbass.model) # anova-like table for random effects
+
+```
+
+```{r}
+# Model fitting and assumptions diagnostic 
+plot(PAMChange ~ interaction(Site,Treatment,Replicate), data = pam.data) # Box-plot homogeinity of variance
+leveneTest(PAMChange ~ Site * Treatment * Replicate, data=pam.data) # formal statistical test for homogeinity of variance (not recommended due the small sample size)
+
+plot(pam.cbass.model) # Residual vs Fitted values
+qqnorm(resid(pam.cbass.model)); qqline(resid(pam.cbass.model)) # qq plot to check for normal distribution of residuals
+hist(resid(pam.cbass.model)) # histogram of residuals to check for normal distribution of residuals
+shapiro.test(resid(pam.cbass.model)) # formal statistical test (not recommended due the small sample size)
+```
+
+```{r}
+
+# comparing between reef sites within each temperature treatment
+pam.cbass.emms.reef <- emmeans(pam.cbass.model, pairwise ~ Site | Treatment, weights = "proportional", adjust="none")
+summary(pam.cbass.emms.reef$emmeans)
+
+# P.value adjustment of the Bonferroni
+rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
+```
+```{r}
+### BOX plots (Fix)
+#pam <- ggplot(data=df, 
+ggplot(data=pam.data, 
+    aes(x=Treatment, y=PAMChange, label= Treatment, fill=Site)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  stat_boxplot(geom ='errorbar', width = 0.7, lwd=0.7)+
+  geom_boxplot(width=0.7, lwd=0.7, fatten=1) +
+  expand_limits(y = 0)+
+  facet_grid(~Site, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
+  theme_bw() +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2) +
+
+  theme(line= element_line(size = 1),
+        axis.line = element_line(colour = "grey20"),
+        axis.ticks.length = unit(0.2 , "cm"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        strip.background = element_blank(), 
+        strip.text.x = element_text(color = "grey20", size = 20, angle = 0, hjust = 0, vjust = 0.5, face = "plain"),
+        panel.spacing = unit(3, "lines"))+
+      xlab(label = "Temperature treatment") + 
+  ylab(label = "Delta photosynthetic efficiency (Fv/Fm)")+
+  theme(axis.text.x = element_text(color = "grey20", size = 20, angle = 0, hjust = .5, vjust = .5, face = "plain"),
+        axis.text.y = element_text(color = "grey20", size = 20, angle = 0, hjust = .5, vjust = .5, face = "plain"),  
+        axis.title.x = element_text(color = "grey20", size = 20, angle = 0, hjust = .5, vjust = 0, face = "plain"),
+        axis.title.y = element_text(color = "grey20", size = 20, angle = 90, hjust = .5, vjust = .5, face = "plain"),
+        legend.title = element_text(colour="grey20", size=20, face="bold"),
+        legend.text = element_text(colour="grey20", size=18, face="plain"),
+        legend.position="bottom")
+
+ggsave("Figures/PAMdata_Heat_POC_09062021.pdf", width = 10, height = 6)
+
+
+```
+
