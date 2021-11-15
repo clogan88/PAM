@@ -88,18 +88,15 @@ ggplot(PAM_all, aes(x = Treatment, y = PAMChange)) +
   ggsave("PAM_allsites_scatter_mod.png", width = 7, height = 5)
 
 #test
-ggplot(PAM_all, aes(x = Treatment, y = PAMChange)) + geom_point() +
-  
-  geom_point(data=B,colour='red') + xlim(0, 10) 
+# ggplot(PAM_all, aes(x = Treatment, y = PAMChange)) + geom_point() +
+#   geom_point(data=B,colour='red') + xlim(0, 10) 
 ```
 
 
 ## Boxplots by species & site 
 ```{r boxplot}
-PAM_all <- PAM_all %>%
-  filter(Site %in% c("Darwin","Isabela","Floreana","Wolf2","Punta_Pitt")
 
-
+# PAM Change plot
 ggplot(PAM_all,aes(x = Treatment, y = PAMChange, color = Species)) +
   geom_boxplot(outlier.size = 0.3) +
   aes(group = Treatment) +
@@ -110,6 +107,7 @@ ggplot(PAM_all,aes(x = Treatment, y = PAMChange, color = Species)) +
   ggtitle("PAM Fluorometry - All Sites") +
   ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
 
+# Color Change plot
 ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
   geom_boxplot(outlier.size = 0.3) +
   aes(group = Treatment) +
@@ -122,6 +120,7 @@ ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
 ```
 ## Boxplots by species & site 
 ```{r boxplot}
+# PAM Change plot
 ggplot(PAM_all,aes(x = Treatment, y = PAMChange, color = Site)) +
   geom_jitter(outlier.size = 0.3) +
   #aes(group = Treatment) +
@@ -132,6 +131,7 @@ ggplot(PAM_all,aes(x = Treatment, y = PAMChange, color = Site)) +
   #ggtitle("PAM Fluorometry - All Sites") +
   #ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
 
+# Color Change plot
 ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
   geom_point(outlier.size = 0.3) +
   facet_grid(Species ~ Site) +
@@ -144,6 +144,7 @@ ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
 
 ## Plots by ramp type
 ```{r PAM plot by ramp type}
+# Heat Ramp
 ggplot(PAM_heat,aes(x = Treatment, y = PAMChange, color = Species)) +
   geom_jitter() +
   facet_grid(Species ~ Site) +
@@ -155,6 +156,7 @@ ggplot(PAM_heat,aes(x = Treatment, y = PAMChange, color = Species)) +
   ggtitle("Heat Ramp PAM All Sites") +
   ggsave("PAM_heatonly_allsites_fit.png", width = 7, height = 3)
 
+# Cold Ramp
 ggplot(PAM_cold,aes(x = Treatment, y = PAMChange, color = Species)) +
   geom_jitter() +
   facet_grid(Species ~ Site) +

@@ -1,0 +1,30 @@
+---
+title: "PAM_stats_rendering"
+author: "Cheryl Logan"
+date: "6/9/2021"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+pam.data <- c("PAM_heat_poc", "PAM_heat_pav", "PAM_cold_poc","PAM_cold_pav")
+```
+
+
+```{r cars}
+Species = "Pocillopora_sp"
+RampType = "Cold"
+
+rmarkdown::render("GLPS_stats_DB.Rmd", params = list(Species = Species, RampType = RampType), output_file = paste0("Report-COLOR", Species, "-", RampType, ".html"))
+
+
+```
+
+
+```{r cars}
+rmarkdown::render("GLPS_stats_DB.Rmd", params = list(
+  Species = "Pocillopora_sp",
+  RampType = "Heat"
+))
+```
+

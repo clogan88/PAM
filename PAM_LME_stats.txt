@@ -1,0 +1,268 @@
+Stats from mixed model
+July 9, 2021
+
+1. PAM data for Pavona heat stress assays
+
+pam.data <- PAM_hpam.data <- PAM_heat_pav
+
+Model:
+PAMChange ~ Site + Treatment + (1 | Replicate) + Site:Treatment
+
+anova(pam.cbass.model) # anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"
+Type III Analysis of Variance Table with Satterthwaite's method
+                Sum Sq  Mean Sq NumDF  DenDF  F value    Pr(>F)    
+Site           0.01807 0.004517     4 276.39   2.6374   0.03434 *  
+Treatment      0.55121 0.183735     3 276.42 107.2898 < 2.2e-16 ***
+Site:Treatment 0.07917 0.006597    12 276.21   3.8524 1.854e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Model:
+PAMChange ~ Site + Treatment + (1 | Replicate) + Site:Treatment
+                npar logLik     AIC    LRT Df Pr(>Chisq)
+<none>            22 461.79 -879.58                     
+(1 | Replicate)   21 461.20 -880.40 1.1811  1     0.2771
+
+P.value adjustment of the Bonferroni
+> rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
+ Treatment contrast               estimate     SE  df t.ratio p.value
+ 26        Darwin - Wolf2         0.000000 0.0151 276  0.000  1.0000 
+ 26        Darwin - Punta_Pitt    0.000000 0.0151 276  0.000  1.0000 
+ 26        Darwin - Espanola      0.000000 0.0151 276  0.000  1.0000 
+ 26        Darwin - Isabela       0.000000 0.0151 276  0.000  1.0000 
+ 26        Wolf2 - Punta_Pitt     0.000000 0.0146 276  0.000  1.0000 
+ 26        Wolf2 - Espanola       0.000000 0.0146 276  0.000  1.0000 
+ 26        Wolf2 - Isabela        0.000000 0.0146 276  0.000  1.0000 
+ 26        Punta_Pitt - Espanola  0.000000 0.0146 276  0.000  1.0000 
+ 26        Punta_Pitt - Isabela   0.000000 0.0146 276  0.000  1.0000 
+ 26        Espanola - Isabela     0.000000 0.0146 276  0.000  1.0000 
+ 32.5      Darwin - Wolf2         0.014955 0.0151 276  0.988  1.0000 
+ 32.5      Darwin - Punta_Pitt   -0.005920 0.0151 276 -0.391  1.0000 
+ 32.5      Darwin - Espanola      0.010830 0.0151 276  0.715  1.0000 
+ 32.5      Darwin - Isabela      -0.010295 0.0151 276 -0.680  1.0000 
+ 32.5      Wolf2 - Punta_Pitt    -0.020875 0.0146 276 -1.427  1.0000 
+ 32.5      Wolf2 - Espanola      -0.004125 0.0146 276 -0.282  1.0000 
+ 32.5      Wolf2 - Isabela       -0.025250 0.0146 276 -1.726  1.0000 
+ 32.5      Punta_Pitt - Espanola  0.016750 0.0146 276  1.145  1.0000 
+ 32.5      Punta_Pitt - Isabela  -0.004375 0.0146 276 -0.299  1.0000 
+ 32.5      Espanola - Isabela    -0.021125 0.0146 276 -1.444  1.0000 
+ 34        Darwin - Wolf2         0.015533 0.0191 277  0.815  1.0000 
+ 34        Darwin - Punta_Pitt    0.017283 0.0191 277  0.907  1.0000 
+ 34        Darwin - Espanola      0.021314 0.0191 277  1.119  1.0000 
+ 34        Darwin - Isabela       0.015408 0.0191 277  0.809  1.0000 
+ 34        Wolf2 - Punta_Pitt     0.001750 0.0146 276  0.120  1.0000 
+ 34        Wolf2 - Espanola       0.005781 0.0146 276  0.395  1.0000 
+ 34        Wolf2 - Isabela       -0.000125 0.0146 276 -0.009  1.0000 
+ 34        Punta_Pitt - Espanola  0.004031 0.0146 276  0.276  1.0000 
+ 34        Punta_Pitt - Isabela  -0.001875 0.0146 276 -0.128  1.0000 
+ 34        Espanola - Isabela    -0.005906 0.0146 276 -0.404  1.0000 
+ 35.5      Darwin - Wolf2        -0.017679 0.0151 276 -1.167  1.0000 
+ 35.5      Darwin - Punta_Pitt    0.019134 0.0151 276  1.263  1.0000 
+ 35.5      Darwin - Espanola     -0.014991 0.0151 276 -0.990  1.0000 
+ 35.5      Darwin - Isabela       0.090423 0.0186 277  4.848  0.0001 
+ 35.5      Wolf2 - Punta_Pitt     0.036812 0.0146 276  2.516  0.4974 
+ 35.5      Wolf2 - Espanola       0.002687 0.0146 276  0.184  1.0000 
+ 35.5      Wolf2 - Isabela        0.108101 0.0182 277  5.928  <.0001 
+ 35.5      Punta_Pitt - Espanola -0.034125 0.0146 276 -2.332  0.8160 
+ 35.5      Punta_Pitt - Isabela   0.071289 0.0182 277  3.909  0.0047 
+ 35.5      Espanola - Isabela     0.105414 0.0182 277  5.781  <.0001 
+ 
+ 
+2. PAM data for Pocillopora heat stress assays
+
+pam.data <- PAM_hpam.data <- PAM_heat_poc
+
+> anova(pam.cbass.model) # anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"
+Type III Analysis of Variance Table with Satterthwaite's method
+                Sum Sq  Mean Sq NumDF  DenDF F value    Pr(>F)    
+Site           0.05243 0.013108     4 283.36  6.0438 0.0001113 ***
+Treatment      0.59786 0.199287     3 283.37 91.8880 < 2.2e-16 ***
+Site:Treatment 0.06014 0.005012    12 283.21  2.3107 0.0079463 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+ranova(pam.cbass.model) # anova-like table for random effects
+ANOVA-like table for random-effects: Single term deletions
+
+Model:
+PAMChange ~ Site + Treatment + (1 | Replicate) + Site:Treatment
+                npar logLik    AIC   LRT Df Pr(>Chisq)
+<none>            22 440.25 -836.5                    
+(1 | Replicate)   21 439.40 -836.8 1.696  1     0.1928
+
+rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
+ Treatment contrast               estimate     SE  df t.ratio p.value
+ 26        Darwin - Wolf2         0.000000 0.0165 283  0.000  1.0000 
+ 26        Darwin - Punta_Pitt    0.000000 0.0165 283  0.000  1.0000 
+ 26        Darwin - Espanola      0.000000 0.0165 283  0.000  1.0000 
+ 26        Darwin - Isabela       0.000000 0.0165 283  0.000  1.0000 
+ 26        Wolf2 - Punta_Pitt     0.000000 0.0165 283  0.000  1.0000 
+ 26        Wolf2 - Espanola       0.000000 0.0165 283  0.000  1.0000 
+ 26        Wolf2 - Isabela        0.000000 0.0165 283  0.000  1.0000 
+ 26        Punta_Pitt - Espanola  0.000000 0.0165 283  0.000  1.0000 
+ 26        Punta_Pitt - Isabela   0.000000 0.0165 283  0.000  1.0000 
+ 26        Espanola - Isabela     0.000000 0.0165 283  0.000  1.0000 
+ 32.5      Darwin - Wolf2         0.031438 0.0165 283  1.909  1.0000 
+ 32.5      Darwin - Punta_Pitt    0.001750 0.0165 283  0.106  1.0000 
+ 32.5      Darwin - Espanola      0.001063 0.0165 283  0.065  1.0000 
+ 32.5      Darwin - Isabela       0.039938 0.0165 283  2.426  0.6364 
+ 32.5      Wolf2 - Punta_Pitt    -0.029687 0.0165 283 -1.803  1.0000 
+ 32.5      Wolf2 - Espanola      -0.030375 0.0165 283 -1.845  1.0000 
+ 32.5      Wolf2 - Isabela        0.008500 0.0165 283  0.516  1.0000 
+ 32.5      Punta_Pitt - Espanola -0.000687 0.0165 283 -0.042  1.0000 
+ 32.5      Punta_Pitt - Isabela   0.038187 0.0165 283  2.319  0.8436 
+ 32.5      Espanola - Isabela     0.038875 0.0165 283  2.361  0.7560 
+ 34        Darwin - Wolf2         0.028459 0.0205 284  1.389  1.0000 
+ 34        Darwin - Punta_Pitt    0.018272 0.0205 284  0.892  1.0000 
+ 34        Darwin - Espanola      0.001147 0.0205 284  0.056  1.0000 
+ 34        Darwin - Isabela       0.084522 0.0205 284  4.126  0.0019 
+ 34        Wolf2 - Punta_Pitt    -0.010188 0.0165 283 -0.619  1.0000 
+ 34        Wolf2 - Espanola      -0.027312 0.0165 283 -1.659  1.0000 
+ 34        Wolf2 - Isabela        0.056063 0.0165 283  3.405  0.0303 
+ 34        Punta_Pitt - Espanola -0.017125 0.0165 283 -1.040  1.0000 
+ 34        Punta_Pitt - Isabela   0.066250 0.0165 283  4.024  0.0029 
+ 34        Espanola - Isabela     0.083375 0.0165 283  5.064  <.0001 
+ 35.5      Darwin - Wolf2        -0.013750 0.0165 283 -0.835  1.0000 
+ 35.5      Darwin - Punta_Pitt    0.027250 0.0165 283  1.655  1.0000 
+ 35.5      Darwin - Espanola      0.010531 0.0165 283  0.640  1.0000 
+ 35.5      Darwin - Isabela       0.035791 0.0205 284  1.747  1.0000 
+ 35.5      Wolf2 - Punta_Pitt     0.041000 0.0165 283  2.490  0.5338 
+ 35.5      Wolf2 - Espanola       0.024281 0.0165 283  1.475  1.0000 
+ 35.5      Wolf2 - Isabela        0.049541 0.0205 284  2.418  0.6489 
+ 35.5      Punta_Pitt - Espanola -0.016719 0.0165 283 -1.015  1.0000 
+ 35.5      Punta_Pitt - Isabela   0.008541 0.0205 284  0.417  1.0000 
+ 35.5      Espanola - Isabela     0.025259 0.0205 284  1.233  1.0000 
+ 
+ 
+ 
+3. PAM data for Pavona cold stress assays
+pam.data <- PAM_cold_pav
+ 
+anova(pam.cbass.model) # anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"
+Type III Analysis of Variance Table with Satterthwaite's method
+                 Sum Sq  Mean Sq NumDF  DenDF F value    Pr(>F)    
+Site           0.043133 0.010783     4 275.00  6.5585 4.699e-05 ***
+Treatment      0.237633 0.079211     3 275.01 48.1770 < 2.2e-16 ***
+Site:Treatment 0.046652 0.003888    12 275.01  2.3645  0.006566 ** 
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> ranova(pam.cbass.model) # anova-like table for random effects
+ANOVA-like table for random-effects: Single term deletions
+
+Model:
+PAMChange ~ Site + Treatment + (1 | Replicate) + Site:Treatment
+                npar logLik    AIC     LRT Df Pr(>Chisq)
+<none>            22 465.95 -887.9                      
+(1 | Replicate)   21 465.85 -889.7 0.20353  1     0.6519
+
+> rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
+ Treatment contrast               estimate     SE  df t.ratio p.value
+ 12        Darwin - Wolf2         1.33e-03 0.0163 275  0.081  1.0000 
+ 12        Darwin - Punta_Pitt    3.74e-02 0.0143 275  2.611  0.3805 
+ 12        Darwin - Espanola      4.71e-02 0.0143 275  3.286  0.0460 
+ 12        Darwin - Isabela       2.26e-02 0.0143 275  1.578  1.0000 
+ 12        Wolf2 - Punta_Pitt     3.61e-02 0.0163 275  2.209  1.0000 
+ 12        Wolf2 - Espanola       4.58e-02 0.0163 275  2.801  0.2184 
+ 12        Wolf2 - Isabela        2.13e-02 0.0163 275  1.303  1.0000 
+ 12        Punta_Pitt - Espanola  9.67e-03 0.0143 275  0.674  1.0000 
+ 12        Punta_Pitt - Isabela  -1.48e-02 0.0143 275 -1.033  1.0000 
+ 12        Espanola - Isabela    -2.45e-02 0.0143 275 -1.708  1.0000 
+ 16        Darwin - Wolf2         1.01e-02 0.0163 275  0.618  1.0000 
+ 16        Darwin - Punta_Pitt    4.35e-02 0.0143 275  3.034  0.1057 
+ 16        Darwin - Espanola      7.43e-02 0.0146 275  5.097  <.0001 
+ 16        Darwin - Isabela       3.50e-03 0.0143 275  0.244  1.0000 
+ 16        Wolf2 - Punta_Pitt     3.34e-02 0.0163 275  2.043  1.0000 
+ 16        Wolf2 - Espanola       6.42e-02 0.0166 275  3.877  0.0053 
+ 16        Wolf2 - Isabela       -6.60e-03 0.0163 275 -0.404  1.0000 
+ 16        Punta_Pitt - Espanola  3.08e-02 0.0146 275  2.112  1.0000 
+ 16        Punta_Pitt - Isabela  -4.00e-02 0.0143 275 -2.790  0.2255 
+ 16        Espanola - Isabela    -7.08e-02 0.0146 275 -4.857  0.0001 
+ 20        Darwin - Wolf2         3.87e-03 0.0163 275  0.237  1.0000 
+ 20        Darwin - Punta_Pitt   -2.25e-03 0.0143 275 -0.157  1.0000 
+ 20        Darwin - Espanola      8.29e-03 0.0143 275  0.578  1.0000 
+ 20        Darwin - Isabela       3.50e-03 0.0143 275  0.244  1.0000 
+ 20        Wolf2 - Punta_Pitt    -6.13e-03 0.0163 275 -0.375  1.0000 
+ 20        Wolf2 - Espanola       4.42e-03 0.0163 275  0.270  1.0000 
+ 20        Wolf2 - Isabela       -3.75e-04 0.0163 275 -0.023  1.0000 
+ 20        Punta_Pitt - Espanola  1.05e-02 0.0143 275  0.735  1.0000 
+ 20        Punta_Pitt - Isabela   5.75e-03 0.0143 275  0.401  1.0000 
+ 20        Espanola - Isabela    -4.79e-03 0.0143 275 -0.334  1.0000 
+ 26        Darwin - Wolf2         0.00e+00 0.0163 275  0.000  1.0000 
+ 26        Darwin - Punta_Pitt    0.00e+00 0.0143 275  0.000  1.0000 
+ 26        Darwin - Espanola      8.13e-05 0.0141 275  0.006  1.0000 
+ 26        Darwin - Isabela       0.00e+00 0.0143 275  0.000  1.0000 
+ 26        Wolf2 - Punta_Pitt     0.00e+00 0.0163 275  0.000  1.0000 
+ 26        Wolf2 - Espanola       8.13e-05 0.0162 275  0.005  1.0000 
+ 26        Wolf2 - Isabela        0.00e+00 0.0163 275  0.000  1.0000 
+ 26        Punta_Pitt - Espanola  8.13e-05 0.0141 275  0.006  1.0000 
+ 26        Punta_Pitt - Isabela   0.00e+00 0.0143 275  0.000  1.0000 
+ 26        Espanola - Isabela    -8.13e-05 0.0141 275 -0.006  1.0000 
+ 
+ 
+ 
+4. PAM data for Pocillopora cold stress assays
+ pam.data <- PAM_cold_poc
+ 
+ > anova(pam.cbass.model) # anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"
+Type III Analysis of Variance Table with Satterthwaite's method
+                 Sum Sq  Mean Sq NumDF DenDF F value    Pr(>F)    
+Site           0.031679 0.007920     4   300  4.1180  0.002902 ** 
+Treatment      0.191624 0.063875     3   300 33.2127 < 2.2e-16 ***
+Site:Treatment 0.039686 0.003307    12   300  1.7196  0.061860 .  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> ranova(pam.cbass.model) # anova-like table for random effects
+ANOVA-like table for random-effects: Single term deletions
+
+Model:
+PAMChange ~ Site + Treatment + (1 | Replicate) + Site:Treatment
+                npar logLik     AIC LRT Df Pr(>Chisq)
+<none>            22 484.66 -925.32                  
+(1 | Replicate)   21 484.66 -927.32   0  1          1
+
+> rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
+ Treatment contrast               estimate     SE  df t.ratio p.value
+ 12        Darwin - Wolf2         6.46e-04 0.0155 299  0.042  1.0000 
+ 12        Darwin - Punta_Pitt    3.53e-02 0.0155 299  2.279  0.9352 
+ 12        Darwin - Espanola      5.10e-02 0.0155 299  3.291  0.0448 
+ 12        Darwin - Isabela       5.11e-02 0.0155 299  3.295  0.0442 
+ 12        Wolf2 - Punta_Pitt     3.47e-02 0.0155 299  2.237  1.0000 
+ 12        Wolf2 - Espanola       5.04e-02 0.0155 299  3.249  0.0516 
+ 12        Wolf2 - Isabela        5.04e-02 0.0155 299  3.253  0.0509 
+ 12        Punta_Pitt - Espanola  1.57e-02 0.0155 299  1.012  1.0000 
+ 12        Punta_Pitt - Isabela   1.58e-02 0.0155 299  1.016  1.0000 
+ 12        Espanola - Isabela     6.25e-05 0.0155 299  0.004  1.0000 
+ 16        Darwin - Wolf2        -5.42e-03 0.0155 299 -0.349  1.0000 
+ 16        Darwin - Punta_Pitt   -1.26e-02 0.0155 299 -0.813  1.0000 
+ 16        Darwin - Espanola      3.11e-02 0.0153 299  2.035  1.0000 
+ 16        Darwin - Isabela      -8.35e-03 0.0155 299 -0.539  1.0000 
+ 16        Wolf2 - Punta_Pitt    -7.19e-03 0.0155 299 -0.464  1.0000 
+ 16        Wolf2 - Espanola       3.65e-02 0.0153 299  2.390  0.6991 
+ 16        Wolf2 - Isabela       -2.94e-03 0.0155 299 -0.189  1.0000 
+ 16        Punta_Pitt - Espanola  4.37e-02 0.0153 299  2.860  0.1812 
+ 16        Punta_Pitt - Isabela   4.25e-03 0.0155 299  0.274  1.0000 
+ 16        Espanola - Isabela    -3.94e-02 0.0153 299 -2.582  0.4119 
+ 20        Darwin - Wolf2        -1.79e-03 0.0155 299 -0.116  1.0000 
+ 20        Darwin - Punta_Pitt   -1.64e-02 0.0155 299 -1.055  1.0000 
+ 20        Darwin - Espanola      1.83e-02 0.0155 299  1.180  1.0000 
+ 20        Darwin - Isabela       8.33e-04 0.0155 299  0.054  1.0000 
+ 20        Wolf2 - Punta_Pitt    -1.46e-02 0.0155 299 -0.939  1.0000 
+ 20        Wolf2 - Espanola       2.01e-02 0.0155 299  1.296  1.0000 
+ 20        Wolf2 - Isabela        2.63e-03 0.0155 299  0.169  1.0000 
+ 20        Punta_Pitt - Espanola  3.47e-02 0.0155 299  2.235  1.0000 
+ 20        Punta_Pitt - Isabela   1.72e-02 0.0155 299  1.109  1.0000 
+ 20        Espanola - Isabela    -1.75e-02 0.0155 299 -1.127  1.0000 
+ 26        Darwin - Wolf2         0.00e+00 0.0155 299  0.000  1.0000 
+ 26        Darwin - Punta_Pitt    0.00e+00 0.0155 299  0.000  1.0000 
+ 26        Darwin - Espanola      0.00e+00 0.0158 299  0.000  1.0000 
+ 26        Darwin - Isabela       0.00e+00 0.0155 299  0.000  1.0000 
+ 26        Wolf2 - Punta_Pitt     0.00e+00 0.0155 299  0.000  1.0000 
+ 26        Wolf2 - Espanola       0.00e+00 0.0158 299  0.000  1.0000 
+ 26        Wolf2 - Isabela        0.00e+00 0.0155 299  0.000  1.0000 
+ 26        Punta_Pitt - Espanola  0.00e+00 0.0158 299  0.000  1.0000 
+ 26        Punta_Pitt - Isabela   0.00e+00 0.0155 299  0.000  1.0000 
+ 26        Espanola - Isabela     0.00e+00 0.0158 299  0.000  1.0000 
+ 
+ 
+ 

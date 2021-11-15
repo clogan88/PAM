@@ -1,0 +1,386 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+  \usepackage{amssymb}
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifluatex
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+author: ``Cheryl Logan'' date: ``6/9/2021'' output: pdf\_document
+params: Species: Pocillopora\_sp RampType: Heat printcode: TRUE data:
+/Users/loga8761/github/PAM/Galapagos\_all.csv title: ``A report for
+Pocillopora\_sp Heat'' ---
+
+\hypertarget{load-libraries}{%
+\section{Load libraries}\label{load-libraries}}
+
+\hypertarget{load-data}{%
+\section{Load data}\label{load-data}}
+
+\hypertarget{load-data-1}{%
+\section{Load data}\label{load-data-1}}
+
+\hypertarget{subset-data}{%
+\section{Subset data}\label{subset-data}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#pam.data \textless{}{-} x}
+
+\NormalTok{pam.data}\SpecialCharTok{$}\NormalTok{Geno }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(pam.data}\SpecialCharTok{$}\NormalTok{Geno)}
+\NormalTok{pam.data}\SpecialCharTok{$}\NormalTok{Site }\OtherTok{\textless{}{-}}  \FunctionTok{as.factor}\NormalTok{(pam.data}\SpecialCharTok{$}\NormalTok{Site)}
+\NormalTok{pam.data}\SpecialCharTok{$}\NormalTok{Replicate }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(pam.data}\SpecialCharTok{$}\NormalTok{Replicate)}
+\NormalTok{pam.data}\SpecialCharTok{$}\NormalTok{Treatment }\OtherTok{\textless{}{-}} \FunctionTok{as.factor}\NormalTok{(pam.data}\SpecialCharTok{$}\NormalTok{Treatment)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{mixed-effects-model}{%
+\section{Mixed Effects model}\label{mixed-effects-model}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# random effect of replicate }
+\CommentTok{\# Since the model is completely balanced the SS type I, II or III will provide the same result}
+\NormalTok{pam.cbass.model }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(PAMChange }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Site }\SpecialCharTok{*}\NormalTok{ Treatment }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{Replicate), }\AttributeTok{data =}\NormalTok{ pam.data)}
+\FunctionTok{anova}\NormalTok{(pam.cbass.model) }\CommentTok{\# anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Type III Analysis of Variance Table with Satterthwaite's method
+##                 Sum Sq  Mean Sq NumDF  DenDF F value    Pr(>F)    
+## Site           0.05243 0.013108     4 283.36  6.0438 0.0001113 ***
+## Treatment      0.59786 0.199287     3 283.37 91.8880 < 2.2e-16 ***
+## Site:Treatment 0.06014 0.005012    12 283.21  2.3107 0.0079463 ** 
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ranova}\NormalTok{(pam.cbass.model) }\CommentTok{\# anova{-}like table for random effects}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## ANOVA-like table for random-effects: Single term deletions
+## 
+## Model:
+## PAMChange ~ Site + Treatment + (1 | Replicate) + Site:Treatment
+##                 npar logLik    AIC   LRT Df Pr(>Chisq)
+## <none>            22 440.25 -836.5                    
+## (1 | Replicate)   21 439.40 -836.8 1.696  1     0.1928
+\end{verbatim}
+
+\hypertarget{model-fitting-and-assumptions-diagnostic}{%
+\section{Model fitting and assumptions
+diagnostic}\label{model-fitting-and-assumptions-diagnostic}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(PAMChange }\SpecialCharTok{\textasciitilde{}} \FunctionTok{interaction}\NormalTok{(Site,Treatment,Replicate), }\AttributeTok{data =}\NormalTok{ pam.data) }\CommentTok{\# Box{-}plot homogeinity of variance}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{GLPS_stats_DB_files/figure-latex/fitting-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{leveneTest}\NormalTok{(PAMChange }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Site }\SpecialCharTok{*}\NormalTok{ Treatment }\SpecialCharTok{*}\NormalTok{ Replicate, }\AttributeTok{data=}\NormalTok{pam.data) }\CommentTok{\# formal statistical test for homogeinity of variance (not recommended due the small sample size)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Levene's Test for Homogeneity of Variance (center = median)
+##        Df F value    Pr(>F)    
+## group  37  2.3428 5.637e-05 ***
+##       266                      
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+\end{verbatim}
+
+\hypertarget{residual-vs-fitted-values}{%
+\section{Residual vs Fitted values}\label{residual-vs-fitted-values}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{plot}\NormalTok{(pam.cbass.model) }\CommentTok{\# Residual vs Fitted values}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{GLPS_stats_DB_files/figure-latex/residuals-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{qqnorm}\NormalTok{(}\FunctionTok{resid}\NormalTok{(pam.cbass.model)); }\FunctionTok{qqline}\NormalTok{(}\FunctionTok{resid}\NormalTok{(pam.cbass.model)) }\CommentTok{\# qq plot to check for normal distribution of residuals}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{GLPS_stats_DB_files/figure-latex/residuals-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{hist}\NormalTok{(}\FunctionTok{resid}\NormalTok{(pam.cbass.model)) }\CommentTok{\# histogram of residuals to check for normal distribution of residuals}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{GLPS_stats_DB_files/figure-latex/residuals-3.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{shapiro.test}\NormalTok{(}\FunctionTok{resid}\NormalTok{(pam.cbass.model)) }\CommentTok{\# formal statistical test (not recommended due the small sample size)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+##  Shapiro-Wilk normality test
+## 
+## data:  resid(pam.cbass.model)
+## W = 0.94711, p-value = 5.439e-09
+\end{verbatim}
+
+\hypertarget{compare-sites-by-temperature-treatment}{%
+\section{Compare sites by temperature
+treatment}\label{compare-sites-by-temperature-treatment}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{pam.cbass.emms.reef }\OtherTok{\textless{}{-}} \FunctionTok{emmeans}\NormalTok{(pam.cbass.model, pairwise }\SpecialCharTok{\textasciitilde{}}\NormalTok{ Site }\SpecialCharTok{|}\NormalTok{ Treatment, }\AttributeTok{weights =} \StringTok{"proportional"}\NormalTok{, }\AttributeTok{adjust=}\StringTok{"none"}\NormalTok{)}
+\FunctionTok{summary}\NormalTok{(pam.cbass.emms.reef}\SpecialCharTok{$}\NormalTok{emmeans)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Treatment = 26:
+##  Site          emmean     SE   df lower.CL upper.CL
+##  Darwin      0.000000 0.0126 24.7  -0.0260  0.02600
+##  Wolf2       0.000000 0.0126 24.7  -0.0260  0.02600
+##  Punta_Pitt  0.000000 0.0126 24.7  -0.0260  0.02600
+##  Espanola    0.000000 0.0126 24.7  -0.0260  0.02600
+##  Isabela     0.000000 0.0126 24.7  -0.0260  0.02600
+## 
+## Treatment = 32.5:
+##  Site          emmean     SE   df lower.CL upper.CL
+##  Darwin      0.003000 0.0126 24.7  -0.0230  0.02900
+##  Wolf2      -0.028438 0.0126 24.7  -0.0544 -0.00244
+##  Punta_Pitt  0.001250 0.0126 24.7  -0.0247  0.02725
+##  Espanola    0.001937 0.0126 24.7  -0.0241  0.02794
+##  Isabela    -0.036937 0.0126 24.7  -0.0629 -0.01094
+## 
+## Treatment = 34:
+##  Site          emmean     SE   df lower.CL upper.CL
+##  Darwin      0.001522 0.0175 67.5  -0.0335  0.03653
+##  Wolf2      -0.026937 0.0126 24.7  -0.0529 -0.00094
+##  Punta_Pitt -0.016750 0.0126 24.7  -0.0427  0.00925
+##  Espanola    0.000375 0.0126 24.7  -0.0256  0.02637
+##  Isabela    -0.083000 0.0126 24.7  -0.1090 -0.05700
+## 
+## Treatment = 35.5:
+##  Site          emmean     SE   df lower.CL upper.CL
+##  Darwin     -0.105438 0.0126 24.7  -0.1314 -0.07944
+##  Wolf2      -0.091688 0.0126 24.7  -0.1177 -0.06569
+##  Punta_Pitt -0.132688 0.0126 24.7  -0.1587 -0.10669
+##  Espanola   -0.115969 0.0126 24.7  -0.1420 -0.08997
+##  Isabela    -0.141228 0.0175 67.5  -0.1762 -0.10622
+## 
+## Degrees-of-freedom method: kenward-roger 
+## Confidence level used: 0.95
+\end{verbatim}
+
+\hypertarget{p.value-adjustment-with-bonferroni}{%
+\section{P.value adjustment with
+Bonferroni}\label{p.value-adjustment-with-bonferroni}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{rbind}\NormalTok{(pam.cbass.emms.reef}\SpecialCharTok{$}\NormalTok{contrasts, }\AttributeTok{adjust=}\StringTok{"bonferroni"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  Treatment contrast               estimate     SE  df t.ratio p.value
+##  26        Darwin - Wolf2         0.000000 0.0165 283  0.000  1.0000 
+##  26        Darwin - Punta_Pitt    0.000000 0.0165 283  0.000  1.0000 
+##  26        Darwin - Espanola      0.000000 0.0165 283  0.000  1.0000 
+##  26        Darwin - Isabela       0.000000 0.0165 283  0.000  1.0000 
+##  26        Wolf2 - Punta_Pitt     0.000000 0.0165 283  0.000  1.0000 
+##  26        Wolf2 - Espanola       0.000000 0.0165 283  0.000  1.0000 
+##  26        Wolf2 - Isabela        0.000000 0.0165 283  0.000  1.0000 
+##  26        Punta_Pitt - Espanola  0.000000 0.0165 283  0.000  1.0000 
+##  26        Punta_Pitt - Isabela   0.000000 0.0165 283  0.000  1.0000 
+##  26        Espanola - Isabela     0.000000 0.0165 283  0.000  1.0000 
+##  32.5      Darwin - Wolf2         0.031438 0.0165 283  1.909  1.0000 
+##  32.5      Darwin - Punta_Pitt    0.001750 0.0165 283  0.106  1.0000 
+##  32.5      Darwin - Espanola      0.001063 0.0165 283  0.065  1.0000 
+##  32.5      Darwin - Isabela       0.039938 0.0165 283  2.426  0.6364 
+##  32.5      Wolf2 - Punta_Pitt    -0.029687 0.0165 283 -1.803  1.0000 
+##  32.5      Wolf2 - Espanola      -0.030375 0.0165 283 -1.845  1.0000 
+##  32.5      Wolf2 - Isabela        0.008500 0.0165 283  0.516  1.0000 
+##  32.5      Punta_Pitt - Espanola -0.000687 0.0165 283 -0.042  1.0000 
+##  32.5      Punta_Pitt - Isabela   0.038187 0.0165 283  2.319  0.8436 
+##  32.5      Espanola - Isabela     0.038875 0.0165 283  2.361  0.7560 
+##  34        Darwin - Wolf2         0.028459 0.0205 284  1.389  1.0000 
+##  34        Darwin - Punta_Pitt    0.018272 0.0205 284  0.892  1.0000 
+##  34        Darwin - Espanola      0.001147 0.0205 284  0.056  1.0000 
+##  34        Darwin - Isabela       0.084522 0.0205 284  4.126  0.0019 
+##  34        Wolf2 - Punta_Pitt    -0.010188 0.0165 283 -0.619  1.0000 
+##  34        Wolf2 - Espanola      -0.027312 0.0165 283 -1.659  1.0000 
+##  34        Wolf2 - Isabela        0.056063 0.0165 283  3.405  0.0303 
+##  34        Punta_Pitt - Espanola -0.017125 0.0165 283 -1.040  1.0000 
+##  34        Punta_Pitt - Isabela   0.066250 0.0165 283  4.024  0.0029 
+##  34        Espanola - Isabela     0.083375 0.0165 283  5.064  <.0001 
+##  35.5      Darwin - Wolf2        -0.013750 0.0165 283 -0.835  1.0000 
+##  35.5      Darwin - Punta_Pitt    0.027250 0.0165 283  1.655  1.0000 
+##  35.5      Darwin - Espanola      0.010531 0.0165 283  0.640  1.0000 
+##  35.5      Darwin - Isabela       0.035791 0.0205 284  1.747  1.0000 
+##  35.5      Wolf2 - Punta_Pitt     0.041000 0.0165 283  2.490  0.5338 
+##  35.5      Wolf2 - Espanola       0.024281 0.0165 283  1.475  1.0000 
+##  35.5      Wolf2 - Isabela        0.049541 0.0205 284  2.418  0.6489 
+##  35.5      Punta_Pitt - Espanola -0.016719 0.0165 283 -1.015  1.0000 
+##  35.5      Punta_Pitt - Isabela   0.008541 0.0205 284  0.417  1.0000 
+##  35.5      Espanola - Isabela     0.025259 0.0205 284  1.233  1.0000 
+## 
+## Degrees-of-freedom method: kenward-roger 
+## P value adjustment: bonferroni method for 40 tests
+\end{verbatim}
+
+\hypertarget{plot-data}{%
+\section{Plot data}\label{plot-data}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{ggplot}\NormalTok{(}\AttributeTok{data=}\NormalTok{pam.data, }
+    \FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{Treatment, }\AttributeTok{y=}\NormalTok{PAMChange, }\AttributeTok{label=}\NormalTok{ Treatment, }\AttributeTok{fill=}\NormalTok{Site)) }\SpecialCharTok{+}
+  \CommentTok{\#scale\_fill\_manual(values = c ("\#56B4E9", "\#E69F00"), name = "Reef site") +}
+  \FunctionTok{stat\_boxplot}\NormalTok{(}\AttributeTok{geom =}\StringTok{\textquotesingle{}errorbar\textquotesingle{}}\NormalTok{, }\AttributeTok{width =} \FloatTok{0.7}\NormalTok{, }\AttributeTok{lwd=}\FloatTok{0.7}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{geom\_boxplot}\NormalTok{(}\AttributeTok{width=}\FloatTok{0.7}\NormalTok{, }\AttributeTok{lwd=}\FloatTok{0.7}\NormalTok{, }\AttributeTok{fatten=}\DecValTok{1}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{expand\_limits}\NormalTok{(}\AttributeTok{y =} \DecValTok{0}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{facet\_grid}\NormalTok{(}\SpecialCharTok{\textasciitilde{}}\NormalTok{Site, }\AttributeTok{space =} \StringTok{"free"}\NormalTok{, }\AttributeTok{scales =} \StringTok{"free"}\NormalTok{)}\SpecialCharTok{+} \CommentTok{\#this can also be used but rows and columns have to be specified {-}\textgreater{} facet\_grid(. \textasciitilde{} experiment)}
+  \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{annotate}\NormalTok{(}\StringTok{"segment"}\NormalTok{, }\AttributeTok{x=}\SpecialCharTok{{-}}\ConstantTok{Inf}\NormalTok{, }\AttributeTok{xend=}\SpecialCharTok{{-}}\ConstantTok{Inf}\NormalTok{, }\AttributeTok{y=}\SpecialCharTok{{-}}\ConstantTok{Inf}\NormalTok{, }\AttributeTok{yend=}\ConstantTok{Inf}\NormalTok{, }\AttributeTok{colour =} \StringTok{"black"}\NormalTok{, }\AttributeTok{size=}\DecValTok{2}\NormalTok{)  }\SpecialCharTok{+} 
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Delta photochemical efficiency (Fv/Fm)"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ggtitle}\NormalTok{(}\FunctionTok{paste0}\NormalTok{(params}\SpecialCharTok{$}\NormalTok{Species, }\StringTok{\textquotesingle{}\_\textquotesingle{}}\NormalTok{, params}\SpecialCharTok{$}\NormalTok{RampType))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Removed 8 rows containing non-finite values (stat_boxplot).
+
+## Warning: Removed 8 rows containing non-finite values (stat_boxplot).
+\end{verbatim}
+
+\includegraphics{GLPS_stats_DB_files/figure-latex/plot-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{title }\OtherTok{=} \FunctionTok{paste0}\NormalTok{(params}\SpecialCharTok{$}\NormalTok{Species, }\StringTok{\textquotesingle{}\_\textquotesingle{}}\NormalTok{, params}\SpecialCharTok{$}\NormalTok{RampType)}
+\CommentTok{\# ggsave("Figures/PAMdata\_Heat\_PAV\_09062021.pdf", width = 10, height = 6)}
+\end{Highlighting}
+\end{Shaded}
+
+
+\end{document}

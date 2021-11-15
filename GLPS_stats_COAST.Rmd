@@ -133,7 +133,7 @@ ggplot(p,aes(x = Site, y = PAMChange, fill = Site) )+
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 
 Create a plot with fraction of most heat- and cold- tolerant corals by site
-
+(Note: re-did this analysis using lm in Colony Tolerance Rmd)
 ```{r}
 # For Pocillopora
 PAM_all_poc_clean <- PAM_all_poc %>%
