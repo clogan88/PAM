@@ -1,0 +1,147 @@
+---
+title: "Galapagos_PAM_allsites"
+author: "Cheryl Logan"
+date: "4/1/2019"
+output: html_document
+---
+
+## Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(thermPerf)
+library(nlme)
+```
+
+## Load raw data 
+```{r load data, include = FALSE}
+wd <- "/Users/loga8761/Google Drive/Research/Projects/Galapagos/CBASS_Galapagos/PAM/PAM_allsites_forR/PAM_allsites_forR_color/"
+
+Flo_heat <- read_csv(file=paste0(wd,"2019_03_17_heat_Floreana_foranalysis.csv"))
+Flo_cold <- read_csv(file=paste0(wd,"2019_03_18_cold_Floreana_foranalysis.csv"))
+
+Isa_heat <- read_csv(file=paste0(wd,"2019_03_19_heat_Isabela_foranalysis.csv"))
+Isa_cold <- read_csv(file=paste0(wd,"2019_03_20_cold_Isabela_foranalysis.csv"))
+
+Pitt_heat <- read_csv(file=paste0(wd,"2019_03_26_heat_PuntaPitt_foranalysis.csv"))
+Pitt_cold <- read_csv(file=paste0(wd,"2019_03_27_cold_PuntaPitt_foranalysis.csv"))
+
+Esp_heat <- read_csv(file=paste0(wd,"2019_04_02_heat_Espanola_foranalysis.csv"))
+Esp_cold <- read_csv(file=paste0(wd,"2019_04_03_cold_Espanola_foranalysis.csv"))
+
+Dar_heat <- read_csv(file=paste0(wd,"2019_05_14_heat_Darwin_foranalysis.csv"))
+Dar_cold <- read_csv(file=paste0(wd,"2019_05_15_cold_Darwin_foranalysis.csv"))
+
+Wol_heat <- read_csv(file=paste0(wd,"2019_05_18_heat_Wolf2_repeat_foranalysis.csv"))
+Wol_cold <- read_csv(file=paste0(wd,"2019_05_19_cold_Wolf2_repeat_foranalysis.csv"))
+
+Acad_heat <- read_csv(file=paste0(wd,"2019_05_21_heat_AcademyBay_foranalysis.csv"))
+Acad_cold <- read_csv(file=paste0(wd,"2019_05_22_cold_AcademyBay_foranalysis.csv"))
+```
+
+## Remove bad data including temperature excursions
+```{r remove bad data, include = FALSE}
+# Remove Academy Bay 16C temp (temps to 13C or 41C for that run)
+excludes <- Acad_cold %>%
+  filter(Treatment == 16)
+Acad_cold <- anti_join(Acad_cold, excludes)
+
+excludes <- Acad_cold %>%
+  filter(Treatment == 20, Replicate == 'A')
+Acad_cold <- anti_join(Acad_cold, excludes)
+
+excludes <- Acad_cold %>%
+  filter(Treatment == 12, Replicate == 'A')
+Acad_cold <- anti_join(Acad_cold, excludes)
+
+# Remove Floreana 31C temp from replicate A (messed up temp profile for that run)
+excludes <- Flo_heat %>%
+  filter(Treatment == 31, Replicate == 'A')
+Flo_heat <- anti_join(Flo_heat, excludes)
+
+# Remove Isabela 35.5C from replicate B (messed up temp profile for that run)
+excludes <- Isa_heat %>%
+  filter(Treatment == 35.5, Replicate == 'B')
+Isa_heat <- anti_join(Isa_heat, excludes)
+```
+
+## Join files into new data frame with all data, heat-only or cold-only
+```{r join data, include = FALSE}
+PAM_heat <- bind_rows(Flo_heat, Isa_heat, Pitt_heat, Esp_heat, Dar_heat, Wol_heat, Acad_heat) %>%
+  mutate(RampType = "Heat")
+
+PAM_cold <- bind_rows(Flo_cold, Isa_cold, Pitt_cold, Esp_cold, Dar_cold, Wol_cold, Acad_cold) %>%
+  mutate(RampType = "Cold")
+
+PAM_all <- bind_rows(PAM_heat,PAM_cold)
+
+PAM_all <- PAM_all %>%
+   select(Site,Species,Treatment,RampType,PAM,Replicate,Geno,Color_1,Color_2) %>%
+   mutate(Site = as.factor(Site))  %>%
+   mutate(ColorChange = Color_2 - Color_1) %>% #calc color change
+   unite("Genobysite", c("Geno", "Species", "Site"), sep = "_", remove = FALSE) %>%
+   unite("Genobysiteramp", c("Geno", "Species", "Site","RampType"), sep = "_", remove = FALSE)# create unique geno ID per site/spp
+
+# Remove all variables except 
+rm(list = ls()[!ls() %in% c("PAM_all","PAM_cold","PAM_heat")])
+```
+
+## Calculate Site/Ramp specific control PAM value at 26C 
+```{r join data, include = FALSE}
+#Get mean control PAM values for each site
+Control_PAM_bysite <- PAM_all %>%
+  group_by(Site, Species, RampType) %>% # Site/Spp/Ramptype specific mean 
+  filter(Treatment == 26) %>%  # control temperature
+  mutate(avg_26_bysite = mean(PAM)) %>%
+  mutate(sd_26_bysite = sd(PAM))
+ungroup(PAM_all)
+
+## Plot control PAM values by site and ramp type
+ggplot(Control_PAM_bysite,aes(x = Site, y = PAM, color = RampType)) +
+  geom_boxplot(outlier.size = 0.3) +
+  facet_grid(Species ~ .) +
+  ylab("Photochemical Efficency (Fv/Fm) at 26C") +
+  xlab("Site") +
+  theme_bw() +
+  ggtitle("Control PAM: All Sites by Ramp Type") 
+
+  ggsave("Control_PAM_allsites_byRampType.png", width = 7, height = 3)
+```
+
+## Calculate RampType Geno-specific control PAM value at 26C for each Genotype
+```{r con PAM calc, include = FALSE}
+#Get mean control PAM values for each site
+Control_PAM_bygeno <- PAM_all %>%
+  group_by(Genobysiteramp) %>% # Genobysiteramp specific mean 
+  filter(Treatment == 26) %>% # control temperature
+  mutate(avg_26_bygeno = mean(PAM)) %>%
+  mutate(sd_26_bygeno = sd(PAM)) 
+ungroup(PAM_all)
+
+# Join PAM_all with control PAM values
+Control_PAM_4merge <- Control_PAM_bygeno %>%
+  select(Genobysiteramp, avg_26_bygeno,sd_26_bygeno) 
+
+PAM_all <- left_join(PAM_all, Control_PAM_4merge, by="Genobysiteramp") #for some reason this dublicated all the rows
+PAM_all <- PAM_all[!duplicated(PAM_all), ] #removes duplicate rows
+
+#Calculate Genotype specific change in PAM from control
+PAM_all <- PAM_all %>%
+   mutate(PAMChange = PAM - avg_26_bygeno)  #calc PAM change
+```
+
+## Save data
+```{r join data, include = FALSE}
+PAM_heat <- PAM_all %>%
+  filter(RampType == "Heat")
+
+PAM_cold <- PAM_all %>%
+  filter(RampType == "Cold")
+
+write_csv(as.data.frame(PAM_all), "Galapagos_all.csv")
+write_csv(as.data.frame(PAM_cold), "Galapagos_cold.csv")
+write_csv(as.data.frame(PAM_heat), "Galapagos_heat.csv")
+```
+

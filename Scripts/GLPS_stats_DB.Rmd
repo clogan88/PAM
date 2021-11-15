@@ -1,0 +1,179 @@
+---
+title: "A report for `r params$Species` `r params$RampType`"
+author: "Cheryl Logan"
+date: "6/9/2021"
+output: html_document
+params:
+  Species: Pavona_clavus
+  RampType: Heat
+  printcode: TRUE
+  data: /Users/loga8761/github/PAM/Galapagos_all.csv
+
+---
+
+Script adapted from Voolstra et al. 2020 GCB
+https://doi.org/10.1111/gcb.15148
+https://github.com/reefgenomics/CBASSvsCLASSIC
+
+The script is used for change in Fv/Fm and Color Card change. Modify variable Var:
+Var <- pam.data$ColorChange # Color Card Change
+Var <- pam.data$Color_2 # Color Card Endpoint
+Var <- pam.data$PAM_Change #Fv/Fm
+
+# Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(car)
+library(lmerTest)
+library(emmeans)
+library(ggplot2)
+library(ggpubr)
+library(sjPlot)
+library(sjmisc)
+library(broom)
+```
+
+# Load data 
+```{r load.data, include = FALSE}
+# from "Galapagos_PAM_allsites.Rmd"
+# Remove sites with odd data or different temp profiles
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Galapagos_all.csv") %>%
+  filter(Site != "AcademyBay"& Site != "Floreana") %>%
+  mutate(Site = fct_relevel(Site, 
+            "Darwin", "Wolf2", "Punta_Pitt", 
+            "Espanola", "Isabela"))  
+
+pam.data <- PAM_all %>%
+  filter(Species == params$Species) %>%
+  filter(RampType == params$RampType) 
+  
+#Labels for re-ordering site names (warm -> cold)
+SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+```
+
+# Set Response variable
+```{r load.var, include = FALSE}
+Var <- pam.data$PAMChange     #Fv/Fm
+#Var <- pam.data$ColorChange    # Color Card Change
+#Var <- pam.data$Color_2         # Color Card Endpoint
+```
+
+# Subset data
+```{r load data subset, include = TRUE}
+#pam.data <- x
+
+pam.data$Geno <- as.factor(pam.data$Geno)
+pam.data$Genobysite <- as.factor(pam.data$Genobysite)
+pam.data$Site <-  as.factor(pam.data$Site)
+pam.data$Replicate <- as.factor(pam.data$Replicate)
+pam.data$Treatment <- as.factor(pam.data$Treatment)
+```
+
+# Mixed Effects model 
+```{r lme model, include = TRUE}
+# random effect of replicate 
+# Since the model is completely balanced the SS type I, II or III will provide the same result
+pam.cbass.model <- lmer(Var ~ Site * Treatment + (1|Replicate), data = pam.data)
+anova(pam.cbass.model) # anova from lmerTest ANOVA SS Type III with ddf="Satterthwaite"
+ranova(pam.cbass.model) # anova-like table for random effects
+```
+
+# Model fitting and assumptions diagnostic
+```{r fitting, include = TRUE}
+plot(Var ~ interaction(Site,Treatment,Replicate), data = pam.data) # Box-plot homogeneity of variance
+leveneTest(Var ~ Site * Treatment * Replicate, data=pam.data) # formal statistical test for homogeinity of variance (not recommended due the small sample size)
+```
+
+# Residual vs Fitted values
+```{r residuals, include = TRUE}
+plot(pam.cbass.model) # Residual vs Fitted values
+qqnorm(resid(pam.cbass.model)); qqline(resid(pam.cbass.model)) # qq plot to check for normal distribution of residuals
+hist(resid(pam.cbass.model)) # histogram of residuals to check for normal distribution of residuals
+shapiro.test(resid(pam.cbass.model)) # formal statistical test (not recommended due the small sample size)
+```
+
+# Compare sites by temperature treatment
+```{r compare , include = TRUE}
+pam.cbass.emms.reef <- emmeans(pam.cbass.model, pairwise ~ Site | Treatment, weights = "proportional", adjust="none")
+summary(pam.cbass.emms.reef$emmeans)
+```
+
+# P.value adjustment with Bonferroni
+```{r, bonferroni, include = TRUE}
+rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
+```
+
+# Plot data
+```{r plot}
+ggplot(data=pam.data, 
+    aes(x=Treatment, y=Var, label= Treatment, fill=Site)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  stat_boxplot(geom ='errorbar', width = 0.7, lwd=0.7)+
+  geom_boxplot(width=0.7, lwd=0.7, fatten=1) +
+  expand_limits(y = 0)+
+  facet_grid(~Site, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
+  theme_bw() +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)  + 
+  ylab(" Color Card Value") +
+  ggtitle(paste0('Color2_', params$Species, '_', params$RampType))
+
+
+# ggsave("Figures/ColorEndpoint_Cold_POC_09072021.pdf", width = 10, height = 6)
+```
+
+# Identify top 10 most/least tolerant colonies
+```{r}
+#Fit linear model for each genotype across all temperatures
+pam.data <- pam.data %>% drop_na(PAMChange) # remove NAs
+slopes<-pam.data %>% group_by(Genobysite) %>% do(tidy(lm(PAMChange ~ Treatment, .)))
+
+strong <- slopes %>%
+  ungroup() %>%
+  filter(term=="Treatment") %>%
+  arrange(estimate) %>%
+  slice_head(n = 10) %>%
+  mutate(tolerance="least_tolerant")
+strong_corals <-right_join(pam.data, strong, by = "Genobysite")
+
+weak <- slopes %>%
+  ungroup() %>%
+  filter(term=="Treatment") %>%
+  arrange(estimate) %>%
+  slice_tail(n = 10) %>%
+  mutate(tolerance="most_tolerant")
+weak_corals <-right_join(pam.data, weak, by = "Genobysite")
+          
+weak.strong <-bind_rows(strong_corals, weak_corals)
+
+```
+
+# Plot weakest & stronge genotypes
+```{r}
+ggplot(data=weak.strong, 
+    aes(x=Treatment, y=PAMChange, label= Treatment, group=Genobysite, color=Site)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  facet_grid(~tolerance, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
+  theme_bw() +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)+
+  ggtitle(paste0('GenotypeTolerance_', params$Species, '_', params$RampType)) 
+ggsave("Figures/GenoTolerance_Heat_PAV_06102021.pdf", width = 10, height = 6)
+```
+
+# Plot weakest & stronge genotypes by site
+```{r}
+hist.weak.strong <- weak.strong %>%
+  select(Genobysite, Site,estimate, tolerance) %>%
+  unique()
+
+ggplot(data=hist.weak.strong, 
+  aes(x=Site , fill = tolerance)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  geom_bar()+
+  theme_bw() +
+  ggtitle(paste0('Top10_Genotypes_', params$Species, '_', params$RampType)) 
+ggsave("Figures/Top10_Heat_PAV_06102021.pdf", width = 10, height = 6)
+```
+

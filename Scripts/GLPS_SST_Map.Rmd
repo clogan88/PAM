@@ -1,0 +1,138 @@
+---
+title: "GLPS_Map2"
+author: "Cheryl Logan"
+date: "9/10/2021"
+output: html_document
+---
+From:
+https://rpubs.com/eqmh/sat-data-plotter-mapper
+# not working!!
+
+First, let’s load required libraries
+```{r setup, include=FALSE}
+library(readr)
+library(rerddap)
+library(lubridate)
+library(dplyr)
+library(flexdashboard)
+library(reshape2)
+library(leaflet)
+library(ggplot2)
+library(vegan)
+library(xts)
+library(dygraphs)
+library(plotly)
+library(mapdata)
+
+library(RColorBrewer)
+palette(brewer.pal(8, "Set2"))
+```
+
+## Query SST data from ERDDAP
+
+```{r get SST}
+## remove all spaces from string
+NoSpaces = function(x){
+  return(gsub(" ", "", x))
+}
+
+## set site coordinates and time for SST extraction
+SSTSiteName = "Patagonia"   ## for the resulting file name
+SSTcoords.lon = -63.
+SSTcoords.lat = -42.5
+
+SSTstartDate = "2002-06-01"
+
+## set climatological date start-end
+SSTclimStartDate = "2002-06-01"
+SSTclimEndDate = "2012-12-31"
+
+## set dataset source
+SSTsource = info("jplMURSST41")
+
+##
+## Get sst 
+SST <- griddap(SSTsource, 
+              time=c(SSTstartDate, "last"),
+              longitude = c(SSTcoords.lon,SSTcoords.lon),
+              latitude = c(SSTcoords.lat,SSTcoords.lat),
+              fields = "analysed_sst",
+              fmt = "csv")
+
+SST = SST[,c(1,4)]
+names(SST) = c("time", "SST")
+
+## convert time to a Data object
+SST$time = as.Date(ymd_hms(SST$time))
+```
+## Calculate SST climatology
+
+```{r pressure, echo=FALSE}
+SST.clim = SST %>% filter(time>=ymd(SSTclimStartDate), time<=SSTclimEndDate) %>% 
+  group_by(yDay = yday(time)) %>% 
+  summarise(SST.mean = mean(SST),
+            SST.median = median(SST),
+            SST.sd = sd(SST),
+            SST.q5 = quantile(SST, 0.05),
+            SST.q10 = quantile(SST, 0.10),
+            SST.q25 = quantile(SST, 0.25),
+            SST.q75 = quantile(SST, 0.75),
+            SST.q90 = quantile(SST, 0.90),
+            SST.q95 = quantile(SST, 0.95),
+            SST.min = min(SST),
+            SST.max = max(SST))
+```
+
+## Plot SST time series
+
+```{r pressure, echo=TRUE}
+SST.xts = as.xts(SST$SST, SST$time)
+dygraph(SST.xts, 
+        ylab = "Sea Surface Temperature (Deg C)") %>% 
+  dySeries("V1", label ="SST (Deg C)", color = "steelblue") %>%
+  dyHighlight(highlightCircleSize = 5, 
+              highlightSeriesBackgroundAlpha = 0.2,
+              hideOnMouseOut = FALSE) %>% 
+  dyOptions(fillGraph = FALSE, fillAlpha = 0.4) %>% 
+  dyRangeSelector(dateWindow = c(max(SST$time) - years(5), max(SST$time)))
+```
+
+```{r}
+## subset SST for last year
+SST.lastyear = SST %>% filter(year(time)==max(year(time)))
+
+## make the plot
+pp = ggplot(SST.clim, aes(yDay, SST.mean))
+pp = pp + geom_line() + geom_smooth(span=0.25, se=FALSE, colour="steelblue") +  
+  geom_ribbon(aes(ymin=SST.q25, ymax=SST.q75), fill="steelblue", alpha=0.5) +
+  geom_line(data=SST.lastyear, aes(yday(time), SST), colour="red") + 
+  ylab("Sea Surface Temperature (Deg C)") + xlab("Day of the Year") + 
+  theme_bw(base_size = 9) 
+ggplotly(pp) %>% plotly::config(displayModeBar = F) 
+```
+
+
+
+##Save SST time series data
+```{r}
+write_csv(SST, path = paste0(NoSpaces(SSTSiteName), "_SST.csv"))
+write_csv(SST.clim, path = paste0(NoSpaces(SSTSiteName), "_Climatology.csv"))
+```
+
+
+## Create a map of the latest SST data
+```{r}
+sstInfo <- info('jplMURSST41')
+# get latest 3-day composite sst
+GHRSST <- griddap(sstInfo, latitude = c(4., -4.), longitude = c(-95., -85.), time = c('last','last'), fields = 'analysed_sst')
+
+mycolor <- colors$temperature
+w <- map_data("worldHires", ylim = c(4., -4.), xlim = c(-95., -85.))
+ggplot(data = GHRSST$data, aes(x = lon, y = lat, fill = analysed_sst)) + 
+  geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
+  geom_raster(interpolate = FALSE) +
+  scale_fill_gradientn(colours = mycolor, na.value = NA) +
+  theme_bw() + ylab("latitude") + xlab("longitude") +
+  coord_fixed(1.3, xlim = c(-95., -85.),  ylim = c(4., -4.)) + ggtitle("Latest daily SST data")
+```
+

@@ -1,0 +1,174 @@
+---
+title: "ColonyTolerance"
+author: "Cheryl Logan"
+date: "6/9/2021"
+output: html_document
+params:
+  Species: Pocillopora_sp
+  RampType: Heat
+  printcode: TRUE
+  data: /Users/loga8761/github/PAM/Galapagos_all.csv
+
+---
+
+# Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggpubr)
+library(broom)
+library(drc)
+```
+
+# Load data 
+```{r load.data, include = FALSE}
+# from "Galapagos_PAM_allsites.Rmd"
+# Remove sites with odd data or different temp profiles
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Galapagos_all.csv") %>%
+  filter(Site != "AcademyBay"& Site != "Floreana") %>%
+  mutate(Site = fct_relevel(Site, 
+            "Darwin", "Wolf2", "Punta_Pitt", 
+            "Espanola", "Isabela"))  
+
+pam.data <- PAM_all %>%
+  filter(Species == params$Species) %>%
+  filter(RampType == params$RampType) 
+  
+#Labels for re-ordering site names (warm -> cold)
+SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+```
+
+# Identify most/least tolerant colonies via linear model
+```{r top.corals}
+#Fit linear model for each genotype across all temperatures
+pam.data <- pam.data %>% drop_na(PAMChange) # remove NAs
+slopes<-pam.data %>% group_by(Genobysite) %>% do(tidy(lm(PAMChange ~ Treatment, .)))
+
+slopes <-slopes %>%
+  ungroup() %>%
+  filter(term=="Treatment")  %>%  # filter by slopes only
+  mutate(estimate = abs(estimate)) %>%  # abs value so code works for heat/cold 
+  mutate(tolerance = ntile(estimate,4)) %>%  # bin slopes low->high (25:50:25)
+  mutate(tolerance = ifelse(tolerance == 1, "most_tolerant",ifelse(tolerance == 4,"least_tolerant","moderate") ))
+
+slopes_corals <-right_join(pam.data, slopes, by = "Genobysite")
+```
+
+# Plot weakest & stronge genotypes
+```{r weak.strong}
+ggplot(data=slopes_corals, 
+    aes(x=Treatment, y=PAMChange, label= Treatment, group=Genobysite, color=Site)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  facet_grid(~tolerance, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
+  theme_bw() +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)+
+  scale_fill_discrete(name = "Site", labels = SiteLabels) +
+  ggtitle(paste0('GenotypeTolerance_', params$Species, '_', params$RampType)) 
+ggsave("Figures/GenoTolerance_Heat_POC_06102021.pdf", width = 10, height = 6)
+```
+
+# Plot weakest & stronge genotypes by site
+
+(next: are any genotypes most heat AND cold tolerant?)
+```{r hist}
+hist <- slopes_corals %>%
+  dplyr::select(Genobysite, Site, tolerance) %>%
+  unique() %>%
+  dplyr::select(Site, tolerance) 
+
+ggplot(hist, aes(x=Site,fill = factor(tolerance)))+
+  geom_bar(stat="count") +
+  scale_x_discrete(labels=SiteLabels) +
+  scale_fill_brewer(palette="Blues") + theme_minimal()+  # Blues for cold tolerance barplots
+  ggtitle(paste0('StrongestColoniesbySite_', params$Species, '_', params$RampType)) 
+ggsave("Figures/StrongestbySite_Cold_POC_06112021.pdf", width = 10, height = 6)
+```
+# Identify ED50 for each colony via log-logistic model
+#not working
+```{r}
+# Define function to fit 3-parameter LL model to data and return NULL if fitting error
+pam.data <- as.data.frame(pam.data) %>% 
+  dplyr::select(Site, Genobysite, Treatment, PAM, Replicate)
+
+#this is not working:
+ll3 <- function(data) {
+  drm(PAM ~ Treatment, data = pam.data, 
+      fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 40),
+      lowerl = c(10, 0.55, 30))}
+tryll3 <- possibly(ll3, otherwise = NULL)
+
+model<- drm(PAM~Treatment, data=pam.data, fct=LL.4(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")))
+model<- drm(PAM~Treatment, data=pam.data, fct=LL.2(names = c("Slope", "Lower Limit", "Upper Limit", "ED50")))
+
+#~~~~~~~~~~~~ Begin Dan help
+
+model<- drm(PAM~Treatment, data=pam.data, upperl = c(120, 0.72, 40), fct=LL.3(names = c("Slope", "Upper Limit", "ED50")), curveid = Genobysite) # use curveid to get model for each colony
+
+summary(model)
+ED(model, c(50, 25, 10))
+plot(model, type="all")
+EDcomp(model, c(50, 25, 10)) # compare ED50 vals
+
+# try using matplot from Dan's script
+tempx <- seq(26,35.5,length=100) # create temperature variable
+predict(model,data.frame(Temp=tempx),interval="confidence") #predicted val with confi interval for 100 temp bn lowest /highest from model
+Colours= "blue"
+
+with(pam.data,plot(Treatment,PAM, type="n",xlim=c(25.5,40))) # make empty plot
+for(i in names(table(pam.data$Genobysite))){
+  print(summary(mod1 <- drm(PAM~Treatment, data=pam.data[pam.data$Genobysite==i,],upperl = c(120, 0.72, 40), fct=LL.3(names = c("Slope", "Upper Limit", "ED50")))))
+ points(pam.data[pam.data$Genobysite==i,"Treatment"], pam.data[pam.data$Genobysite==i,"PAM"],col=Colours, pch=16)
+ lines(tempx,predict(mod1,data.frame(Temp=tempx)),col=Colours)
+}
+abline(v=model$coefficients[81:120])
+text(model$coefficients[81:120],.6,labels=as.character(round(ED(model,c(50)),digits=2)))
+
+
+model<- drm(PAM~Treatment, data=pam.data, upperl = c(120, 0.72, 40), fct=LL.3(names = c("Slope", "Upper Limit", "ED50")), curveid = Site)
+
+summary(model)
+ED(model, c(50, 25, 10))
+compParm(model, "ED50")
+
+#~~~~~~~~~~~~ end Dan help
+
+#you don't need the 'names = ' argument but it's useful to label the b, c, d, and e parameters until you're familiar with
+plot(model, type="all")
+
+
+# Fit model to each coral, get parameters, fitted values, and residuals
+initmods <- pam.data %>%
+  nest(data = c(Treatment, PAM)) %>%
+  # Fit the model to each coral
+  mutate(model = map(data, tryll3)) %>%
+  # Get model parameters and fitted values/residuals
+  mutate(pars = map(model, tidy),
+         pred = map2(model, data, ~augment(.x, drop_na(.y, PAM))))
+
+# Extract ed50 parameter values from model fits
+ed50 <- initmods %>% 
+  dplyr::select(Site, Genobysite) %>%
+  unnest(pars) %>%
+  filter(term == "ED50")
+
+# Collect raw data, fitted values, and diagnostics
+vals <- initmods %>%
+  dplyr::select(Site, Genobysite, pred) %>%
+  unnest(pred) %>%
+  full_join(ed50) %>%
+  full_join(df) %>%
+  rename(ed50 = estimate)
+```
+```{r}
+# Model selection
+
+model.LL3 <- drm(PAM~Treatment, data=pam.data, fct=LL.3(names = c("Slope", "Upper Limit", "ED50")))
+summary(model)
+
+mselect(model.LL3, fctList = list(W1.3(fixed=c(NA, 100, NA)),W1.4(), W2.3(fixed=c(NA, 100, NA)), W2.4(),  LL.4()),linreg=TRUE) 
+
+model.W1.3 <-  drm(PAM~Treatment, data=pam.data, fct=W1.3(names = c("Slope", "Upper Limit",  "ED50")))
+
+```

@@ -1,0 +1,323 @@
+---
+title: "Galapagos_PAM_allsites"
+author: "Cheryl Logan"
+date: "4/1/2019"
+output: html_document
+---
+
+## Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(thermPerf)
+library(nlme)
+```
+
+## Load data (from "Galapagos_PAM_allsites.Rmd")
+```{r load data, include = FALSE}
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Galapagos_all.csv")
+PAM_cold <- read_csv("/Users/loga8761/github/PAM/Galapagos_cold.csv")
+PAM_heat <- read_csv("/Users/loga8761/github/PAM/Galapagos_heat.csv")
+```
+
+
+## Compare CoralWatch Color Change with PAM Change
+```{r color v PAM}
+# using ggpubr to make the plot
+sp <- ggscatter(PAM_all, x = "ColorChange", y = "PAMChange",
+   color = "Species", 
+   add = "reg.line", conf.int = TRUE)
+sp + stat_cor(aes(color = Species), label.x = -4) +
+   ggtitle("PAM Change versus Color Change - All Sites") +
+  theme_bw() +
+  ylab("Change in Photochemical Efficency (Fv/Fm)") +
+  xlab("CoralWatch Color Change") +
+  ggsave("PAM_Color_allsites_scatter.png", width = 7, height = 5)
+
+# using ggplot2 to make the plot
+# ggplot(PAM_all, aes(x = ColorChange, y = PAM)) +
+#   geom_point() +
+#   aes(color = Species) +
+#   facet_wrap(~ Species) +
+#   theme_bw() +
+#   ylab("Photochemical Efficency (Fv/Fm)") +
+#   xlab("CoralWatch Color Change") +
+#   stat_cor(method = "pearson", label.x = 2.5, label.y = .2)
+#   ggtitle("PAM versus CoralWatch Color Change - All Sites") +
+#   ggsave("PAM_Color_allsites_scatter.png", width = 7, height = 5)
+#   #stat_smooth(method = "lm", formula = y ~ x) + # try linear model
+#   
+#   ggtitle("PAM versus CoralWatch Color Change - All Sites") +
+#   ggsave("PAM_Color_allsites_scatter.png", width = , height = 5)
+
+summary(lm(PAM ~ ColorChange, PAM_all))
+```
+
+## Compare Color Change by Temperature
+```{r color density}
+# remove data from Floreana 31C temp & Wolf 26C from one tank each
+ggplot(PAM_all, aes(x = ColorChange)) +
+  geom_density() +
+  aes(color = Species) +
+  facet_wrap(~ Treatment) +
+  theme_bw() +
+  ylab("Frequency") +
+  xlab("Color Change") +
+  xlim(c(-4,0)) +
+  ggtitle("Temperature versus CoralWatch Color Change - All Sites") +
+  ggsave("ColorvTempHistogram_allsites_scatter.png", width = 7, height = 5)
+```
+
+## Scatterplot with lm fit by species
+```{r jitterplot}
+# add second axis to plot Color and PAM on same figure
+ggplot(PAM_all, aes(x = Treatment, y = PAMChange)) +
+  geom_point(alpha = 0.3, color = "#009E73",colour = "PAM") +
+  geom_smooth(method = "loess", mapping = aes(color = RampType)) +
+  
+  #geom_smooth(method = "lm", formula = y ~ exp(x), fill = "gray", colour = "black") + # try linear model
+  #geom_smooth(method = "lm", formula = y ~ log(x), fill = "green", colour = "blue") + # try linear model
+  facet_wrap(~Species) +
+  theme_bw() +
+  facet_grid(Species ~ Site) +
+  ylab("PAM (Fv/Fm) (green)") +
+  xlab("Temperature [°C]") +
+  ggtitle("PAM - All Sites") +
+  ggsave("PAM_allsites_scatter_mod.png", width = 7, height = 5)
+
+#test
+# ggplot(PAM_all, aes(x = Treatment, y = PAMChange)) + geom_point() +
+#   geom_point(data=B,colour='red') + xlim(0, 10) 
+```
+
+
+## Boxplots by species & site 
+```{r boxplot}
+
+# PAM Change plot
+ggplot(PAM_all,aes(x = Treatment, y = PAMChange, color = Species)) +
+  geom_boxplot(outlier.size = 0.3) +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Site) +
+  ylab("Change in Photochemical Efficency (Fv/Fm)") +
+  xlab("Temperature [°C]") +
+  theme_bw() +
+  ggtitle("PAM Fluorometry - All Sites") +
+  ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
+
+# Color Change plot
+ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_boxplot(outlier.size = 0.3) +
+  aes(group = Treatment) +
+  facet_grid(Species ~ Site) +
+  ylab("Visual Color Change (pre vs post stress)") +
+  xlab("Temperature [°C]") +
+  theme_bw() +
+  ggtitle("Visual Color Change - All Sites") +
+  ggsave("Color_allsites_boxplot.png", width = 7, height = 3)
+```
+## Boxplots by species & site 
+```{r boxplot}
+# PAM Change plot
+ggplot(PAM_all,aes(x = Treatment, y = PAMChange, color = Site)) +
+  geom_jitter(outlier.size = 0.3) +
+  #aes(group = Treatment) +
+  #facet_grid(Species ~ Site) +
+  ylab("Change in Photochemical Efficency (Fv/Fm)") +
+  xlab("Temperature [°C]") +
+  theme_bw() 
+  #ggtitle("PAM Fluorometry - All Sites") +
+  #ggsave("PAM_allsites_boxplot.png", width = 7, height = 3)
+
+# Color Change plot
+ggplot(PAM_all,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_point(outlier.size = 0.3) +
+  facet_grid(Species ~ Site) +
+  ylab("Visual Color Change (pre vs post stress)") +
+  xlab("Temperature [°C]") +
+  theme_bw() 
+  #ggtitle("Visual Color Change - All Sites") +
+  #ggsave("Color_allsites_boxplot.png", width = 7, height = 3)
+```
+
+## Plots by ramp type
+```{r PAM plot by ramp type}
+# Heat Ramp
+ggplot(PAM_heat,aes(x = Treatment, y = PAMChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ exp(x), fill = "gray", colour = "black") + # try linear model
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Heat Ramp PAM All Sites") +
+  ggsave("PAM_heatonly_allsites_fit.png", width = 7, height = 3)
+
+# Cold Ramp
+ggplot(PAM_cold,aes(x = Treatment, y = PAMChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ log(x), fill = "gray", colour = "black") + # try linear model
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Cold Ramp PAM All Sites") +
+  ggsave("PAM_coldonly_allsites_fit.png", width = 7, height = 3)
+```
+
+## Plots by ramp type for simposio talk
+```{r PAM plot simposio}
+
+PAM_heat$Site = factor(PAM_heat$Site, levels=c('Darwin', 'Wolf2', 'Isabela','Punta_Pitt', 'Espanola'))
+PAM_cold$Site = factor(PAM_cold$Site, levels=c('Darwin', 'Wolf2', 'Isabela','Punta_Pitt', 'Espanola'))
+
+PAM_heat <- PAM_heat %>% filter(Site %in% c("Darwin", "Wolf2", "Isabela", "Punta_Pitt", "Espanola"))
+
+PAM_cold <- PAM_cold %>%
+  filter(Site %in% c("Darwin", "Wolf2", "Isabela", "Punta_Pitt", "Espanola"))
+ 
+
+ggplot(PAM_heat,aes(x = Treatment, y = PAMChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ exp(x), fill = "gray", colour = "black") + # try linear model
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Treatment Temperature (degC)") +
+  ylim(c(-.4,0)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Heat Ramp PAM All Sites") +
+  ggsave("PAM_heatonly_allsites_fit.png", width = 7, height = 3)
+
+ggplot(PAM_cold,aes(x = Treatment, y = PAMChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ log(x), fill = "gray", colour = "black") + # try linear model
+  ylab("Photochemical Efficency (Fv/Fm)") +
+  xlab("Treatment Temperature (degC)") +
+  ylim(c(-.4,.1)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Cold Ramp PAM All Sites") +
+  ggsave("PAM_coldonly_allsites_fit.png", width = 7, height = 3)
+```
+
+
+```{r PAM plot by ramp type}
+ggplot(PAM_heat,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ exp(x), colour = "black",fill = "black") + # try linear model
+  ylab("CoralWatch Color Change") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Heat Ramp Color All Sites") +
+  ggsave("Color_heatonly_allsites_fit.png", width = 7, height = 3)
+
+ggplot(PAM_cold,aes(x = Treatment, y = ColorChange, color = Species)) +
+  geom_jitter() +
+  facet_grid(Species ~ Site) +
+  stat_smooth(method = "lm", formula = y ~ log(x), colour = "black", fill = "black") + # try linear model
+  ylab("CoralWatch Color Change") +
+  xlab("Treatment Temperature (degC)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  ggtitle("Cold Ramp Color All Sites") +
+  ggsave("Color_coldonly_allsites_fit.png", width = 7, height = 3)
+```
+
+## PAM-Exponential model fitting & stats
+```{r lm models}
+mod_heat <- lm(PAMChange ~ exp(Treatment) * Species * Site, data = PAM_heat)
+summary(mod_heat)
+
+mod_cold <- lm(PAMChange ~ log(Treatment) * Species * Site, data = PAM_cold)
+summary(mod_cold)
+```
+
+## Color-Exponential model fitting & stats
+```{r lm models}
+mod_heat <- lm(ColorChange ~ exp(Treatment) * Species * Site, data = PAM_heat)
+summary(mod_heat)
+
+mod_cold <- lm(ColorChange ~ log(Treatment) * Species * Site, data = PAM_cold)
+summary(mod_cold)
+```
+
+## PAM Pocillopora ANOVA model fitting & Tukey HSD
+```{r ANOVA stats}
+
+PAM_all_poc <- PAM_all %>%
+  filter(Species == "Pocillopora_sp") 
+
+excludes <- PAM_all %>%
+  filter(Treatment == 14 |Treatment == 31)
+
+PAM_all_poc <- anti_join(PAM_all_poc, excludes)
+
+
+#Pocillopora
+mod_anova_all <- aov(PAMChange ~ factor(Site), data = PAM_all_poc)
+summary(mod_anova_all)
+TukeyHSD(mod_anova_all)
+
+ggplot(PAM_all_poc,aes(x = Site, y = PAMChange)) +
+  geom_boxplot(outlier.size = 0.3) +
+  facet_wrap(. ~ Treatment) +
+  ylab("Normalized Change in Photochemical Efficency (Fv/Fm)") +
+  xlab("Pocillopora by Site") +
+  theme_bw() +
+  #ylim(c(.4,.6)) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1)) +
+  ggsave("Poc_by_site.png", width = 7, height = 6)
+```
+
+
+## PAM Pavona ANOVA model fitting & Tukey HSD
+```{r ANOVA stats}
+PAM_all_pav <- PAM_all %>%
+  filter(Species == "Pavona_clavus") 
+
+excludes <- PAM_all %>%
+  filter(Treatment == 14 |Treatment == 31)
+
+PAM_all_pav <- anti_join(PAM_all_pav, excludes)
+
+
+#Pavona
+mod_anova_all <- aov(PAMChange ~ factor(Treatment) * Site, data = PAM_all_pav)
+summary(mod_anova_all)
+TukeyHSD(mod_anova_all)
+
+ggplot(PAM_all_pav,aes(x = Site, y = PAMChange)) +
+  geom_boxplot(outlier.size = 0.3) +
+  facet_wrap(. ~ Treatment) +
+  ylab("Normalized Change in Photochemical Efficency (Fv/Fm)") +
+  xlab("Pavona by Site") +
+  theme_bw() +
+  #ylim(c(.4,.6)) +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 60, vjust = 1, hjust=1)) +
+  ggsave("Pav_by_site.png", width = 7, height = 6)
+
+##HSD_PAM_aov <- TukeyHSD(mod_anova_all)
+#names(HSD_PAM_aov)
+#test <- (HSD_PAM_aov$`factor(Treatment):Species:Site`)
+
+#write_csv(as.data.frame(test), "test")
+
+```
+
+
+## Color N way ANOVA model fitting & Tukey HSD
+```{r ANOVA stats}
+mod_anova_all <- aov(ColorChange ~ factor(Treatment) * Species * Site, data = PAM_all)
+summary(mod_anova_all)
+HSD_Color <- TukeyHSD(mod_anova_all)
+```
