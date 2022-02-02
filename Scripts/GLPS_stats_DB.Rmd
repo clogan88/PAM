@@ -4,7 +4,7 @@ author: "Cheryl Logan"
 date: "6/9/2021"
 output: html_document
 params:
-  Species: Pavona_clavus
+  Species: Pocillopora_sp
   RampType: Heat
   printcode: TRUE
   data: /Users/loga8761/github/PAM/Galapagos_all.csv
@@ -38,7 +38,7 @@ library(broom)
 ```{r load.data, include = FALSE}
 # from "Galapagos_PAM_allsites.Rmd"
 # Remove sites with odd data or different temp profiles
-PAM_all <- read_csv("/Users/loga8761/github/PAM/Galapagos_all.csv") %>%
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Data/Galapagos_all.csv") %>%
   filter(Site != "AcademyBay"& Site != "Floreana") %>%
   mutate(Site = fct_relevel(Site, 
             "Darwin", "Wolf2", "Punta_Pitt", 
@@ -115,8 +115,8 @@ ggplot(data=pam.data,
   facet_grid(~Site, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
   theme_bw() +
   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)  + 
-  ylab(" Color Card Value") +
-  ggtitle(paste0('Color2_', params$Species, '_', params$RampType))
+  ylab(" Fv/Fm") +
+  ggtitle(paste0('PAM_', params$Species, '_', params$RampType))
 
 
 # ggsave("Figures/ColorEndpoint_Cold_POC_09072021.pdf", width = 10, height = 6)
@@ -130,7 +130,7 @@ slopes<-pam.data %>% group_by(Genobysite) %>% do(tidy(lm(PAMChange ~ Treatment, 
 
 strong <- slopes %>%
   ungroup() %>%
-  filter(term=="Treatment") %>%
+  filter(term=="Treatment35.5") %>% #Filter corals by hottest treatment
   arrange(estimate) %>%
   slice_head(n = 10) %>%
   mutate(tolerance="least_tolerant")
@@ -138,7 +138,7 @@ strong_corals <-right_join(pam.data, strong, by = "Genobysite")
 
 weak <- slopes %>%
   ungroup() %>%
-  filter(term=="Treatment") %>%
+  filter(term=="Treatment35.5") %>% #Filter corals by hottest treatment
   arrange(estimate) %>%
   slice_tail(n = 10) %>%
   mutate(tolerance="most_tolerant")
