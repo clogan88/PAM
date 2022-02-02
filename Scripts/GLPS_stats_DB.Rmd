@@ -32,6 +32,7 @@ library(ggpubr)
 library(sjPlot)
 library(sjmisc)
 library(broom)
+today.date <- Sys.Date()
 ```
 
 # Load data 
@@ -119,7 +120,10 @@ ggplot(data=pam.data,
   ggtitle(paste0('PAM_', params$Species, '_', params$RampType))
 
 
-# ggsave("Figures/ColorEndpoint_Cold_POC_09072021.pdf", width = 10, height = 6)
+# ggsave("ColorEndpoint_Cold_POC_09072021.pdf", width = 10, height = 6)
+# save
+filename=paste0('GenotypeTolerance_', params$Species, '_', params$RampType, '.','pdf')
+#ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
 ```
 
 # Identify top 10 most/least tolerant colonies
@@ -158,8 +162,11 @@ ggplot(data=weak.strong,
   facet_grid(~tolerance, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
   theme_bw() +
   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)+
-  ggtitle(paste0('GenotypeTolerance_', params$Species, '_', params$RampType)) 
-ggsave("Figures/GenoTolerance_Heat_PAV_06102021.pdf", width = 10, height = 6)
+  ggtitle(paste0('GenotypeTolerance_', params$Species, '_', params$RampType))
+
+# save
+filename=paste0('GenotypeTolerance_',params$Species,'_', params$RampType,'_',today.date,'.','pdf')
+ggsave(path="/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
 ```
 
 # Plot weakest & stronge genotypes by site
@@ -174,6 +181,9 @@ ggplot(data=hist.weak.strong,
   geom_bar()+
   theme_bw() +
   ggtitle(paste0('Top10_Genotypes_', params$Species, '_', params$RampType)) 
-ggsave("Figures/Top10_Heat_PAV_06102021.pdf", width = 10, height = 6)
+
+# save
+filename=paste0('Top10_Genotypes_',params$Species,'_', params$RampType,'_',today.date,'.','pdf')
+ggsave(path="/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
 ```
 
