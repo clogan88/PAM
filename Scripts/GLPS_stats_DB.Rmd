@@ -47,10 +47,13 @@ PAM_all <- read_csv("/Users/loga8761/github/PAM/Data/Galapagos_all.csv") %>%
 
 pam.data <- PAM_all %>%
   filter(Species == params$Species) %>%
-  filter(RampType == params$RampType) 
+  filter(RampType == params$RampType) %>%                               # Replacing values
+  mutate_at("Site",str_replace,"Wolf2", "Wolf") %>%                               # Replacing values
+  mutate_at("Site",str_replace,"Punta_Pitt", "San Cristobal")
   
 #Labels for re-ordering site names (warm -> cold)
-SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+sitelabs <- c("Darwin", "Wolf2", "Punta_Pitt", "Espanola", "Isabela")
+names(sitelabs) <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
 ```
 
 # Set Response variable
@@ -123,29 +126,31 @@ ggplot(data=pam.data,
 # ggsave("ColorEndpoint_Cold_POC_09072021.pdf", width = 10, height = 6)
 # save
 filename=paste0('GenotypeTolerance_', params$Species, '_', params$RampType, '.','pdf')
-#ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
+ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
 ```
 
 # Identify top 10 most/least tolerant colonies
+
 ```{r}
 #Fit linear model for each genotype across all temperatures
+pam.data$Treatment <- as.numeric(as.character(pam.data$Treatment))
 pam.data <- pam.data %>% drop_na(PAMChange) # remove NAs
 slopes<-pam.data %>% group_by(Genobysite) %>% do(tidy(lm(PAMChange ~ Treatment, .)))
 
 strong <- slopes %>%
   ungroup() %>%
-  filter(term=="Treatment35.5") %>% #Filter corals by hottest treatment
-  arrange(estimate) %>%
+  filter(term=="Treatment") %>%   # Select slopes only
+  arrange(abs(estimate)) %>%      # sort by absolute value of slope
   slice_head(n = 10) %>%
-  mutate(tolerance="least_tolerant")
+  mutate(tolerance="most_tolerant")
 strong_corals <-right_join(pam.data, strong, by = "Genobysite")
 
 weak <- slopes %>%
   ungroup() %>%
-  filter(term=="Treatment35.5") %>% #Filter corals by hottest treatment
-  arrange(estimate) %>%
+  filter(term=="Treatment") %>% 
+  arrange(abs(estimate)) %>%
   slice_tail(n = 10) %>%
-  mutate(tolerance="most_tolerant")
+  mutate(tolerance="least_tolerant")
 weak_corals <-right_join(pam.data, weak, by = "Genobysite")
           
 weak.strong <-bind_rows(strong_corals, weak_corals)
