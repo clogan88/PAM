@@ -1,7 +1,7 @@
 ---
 title: "A report for `r params$Species` `r params$RampType`"
 author: "Cheryl Logan"
-date: "6/9/2021"
+date: "2/15/2022"
 output: html_document
 params:
   Species: Pocillopora_sp
@@ -110,13 +110,15 @@ rbind(pam.cbass.emms.reef$contrasts, adjust="bonferroni")
 
 # Plot data
 ```{r plot}
+
 ggplot(data=pam.data, 
     aes(x=Treatment, y=Var, label= Treatment, fill=Site)) +
   #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
   stat_boxplot(geom ='errorbar', width = 0.7, lwd=0.7)+
   geom_boxplot(width=0.7, lwd=0.7, fatten=1) +
   expand_limits(y = 0)+
-  facet_grid(~Site, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
+  #facet_grid(~Site, space = "free", scales = "free")+ #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment)
+  facet_grid(~factor(Site, levels=c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")))+
   theme_bw() +
   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)  + 
   ylab(" Fv/Fm") +
@@ -179,6 +181,9 @@ ggsave(path="/Users/loga8761/github/PAM/Figures", filename, width = 10, height =
 hist.weak.strong <- weak.strong %>%
   select(Genobysite, Site,estimate, tolerance) %>%
   unique()
+
+hist.weak.strong$Site <- factor(hist.weak.strong$Site,  # Change ordering manually
+                  levels = c("Darwin", "Wolf", "San Cristobal", "Espanola", "Isabela"))
 
 ggplot(data=hist.weak.strong, 
   aes(x=Site , fill = tolerance)) +
