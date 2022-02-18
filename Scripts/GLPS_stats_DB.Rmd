@@ -5,7 +5,7 @@ date: "2/15/2022"
 output: html_document
 params:
   Species: Pocillopora_sp
-  RampType: Heat
+  RampType: Cold
   printcode: TRUE
   data: /Users/loga8761/github/PAM/Galapagos_all.csv
 
@@ -159,6 +159,47 @@ weak.strong <-bind_rows(strong_corals, weak_corals)
 
 ```
 
+Isabela and Darwin only
+```{r}
+#Fit linear model for each genotype across all temperatures
+pam.data$Treatment <- as.numeric(as.character(pam.data$Treatment))
+pam.data <- pam.data %>% drop_na(PAMChange) # remove NAs
+pam.data <- pam.data %>% filter(Site=="Isabela" | Site == "Darwin") # remove NAs
+slopes<-pam.data %>% group_by(Genobysite) %>% do(tidy(lm(PAMChange ~ Treatment, .)))
+
+Isa.Dar.strong <- slopes %>%
+  ungroup() %>%
+  filter(term=="Treatment") %>%   # Select slopes only
+  arrange(abs(estimate)) 
+
+Isa.Dar.strong_corals <-right_join(pam.data, Isa.Dar.strong, by = "Genobysite")%>%    
+  arrange(desc(abs(estimate)))   %>%   # sort by absolute value of slope
+  group_by(Site) %>% mutate(rank = dense_rank(estimate))# sort by absolute value of slope
+  #select(Genobysite, Site,estimate) %>%
+  #unique()
+
+ggplot(data=Isa.Dar.strong_corals, 
+    aes(x=Treatment, y=PAMChange, label= Treatment, group=Genobysite, color=rank)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  geom_point()+
+  geom_smooth(method = "lm", se = FALSE)+
+  facet_grid(~Site, space = "free", scales = "free") + #this can also be used but rows and columns have to be specified -> facet_grid(. ~ experiment) +
+  # geom_text(
+  #   label=rownames(Geno), 
+  #   nudge_x = 0.25, nudge_y = 0.25, 
+  #   check_overlap = T
+  # ) +
+  theme_bw() +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf, colour = "black", size=2)+
+  ggtitle(paste0('GenotypeTolerance_', params$Species, '_', params$RampType))
+
+# save
+filename=paste0('IsaDarGenotypeTolerance_',params$Species,'_', params$RampType,'_',today.date,'.','pdf')
+ggsave(path="/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
+filename=paste0('IsaDarStrong_',params$Species,'_', params$RampType,'_',today.date,'.','csv')
+write_csv(Isa.Dar.strong, file = filename)
+```
+
 # Plot weakest & stronge genotypes
 ```{r}
 ggplot(data=weak.strong, 
@@ -191,6 +232,31 @@ ggplot(data=hist.weak.strong,
   geom_bar()+
   theme_bw() +
   ggtitle(paste0('Top10_Genotypes_', params$Species, '_', params$RampType)) 
+
+#write_csv(hist.weak.strong, file = "data_output/surveys_complete.csv")
+
+# save
+filename=paste0('Top10_Genotypes_',params$Species,'_', params$RampType,'_',today.date,'.','pdf')
+ggsave(path="/Users/loga8761/github/PAM/Figures", filename, width = 10, height = 6)
+```
+
+# Plot weakest & stronge genotypes for Isabela and Darwin only
+```{r}
+Isa.Dar.hist.weak.strong <- weak.strong %>%
+  select(Genobysite, Site,estimate, tolerance) %>%
+  unique()
+
+Isa.Dar.hist.weak.strong$Site <- factor(hist.weak.strong$Site,  # Change ordering 
+                  levels = c("Darwin", "Isabela"))
+
+ggplot(data=Isa.Dar.hist.weak.strong, 
+  aes(x=Site , fill = tolerance)) +
+  #scale_fill_manual(values = c ("#56B4E9", "#E69F00"), name = "Reef site") +
+  geom_bar()+
+  theme_bw() +
+  ggtitle(paste0('Top10_Genotypes_', params$Species, '_', params$RampType)) 
+
+#write_csv(hist.weak.strong, file = "data_output/surveys_complete.csv")
 
 # save
 filename=paste0('Top10_Genotypes_',params$Species,'_', params$RampType,'_',today.date,'.','pdf')
