@@ -1,0 +1,163 @@
+---
+title: "CBASS_DRC_2022"
+author: "Cheryl Logan"
+date: "6/3/2022"
+output: html_document
+params:
+  Species: Pocillopora_sp
+  RampType: Cold
+  printcode: TRUE
+  data: /Users/loga8761/github/PAM/Data/Galapagos_all.csv
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+```{r setup, include = FALSE}
+library(tidyverse)
+library(ggpubr)
+library(broom)
+library(ggplot2) # v. 3.3.5
+library(purrr) # v. 0.3.4
+library(drc)
+library(nls.multstart)
+library(nlme)
+library(lmerTest)
+library(emmeans)
+library(sjPlot)
+library(drc)
+library(Rmisc)
+
+theme_set(theme_minimal())
+
+```
+
+# Load data 
+```{r load.data, include = FALSE}
+# from "Galapagos_PAM_allsites.Rmd"
+# Remove sites with odd data or different temp profiles
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Data/Galapagos_all.csv") %>%
+  filter(Site != "AcademyBay"& Site != "Floreana") %>%
+  mutate(Site = fct_relevel(Site, 
+            "Darwin", "Wolf2", "Punta_Pitt", 
+            "Espanola", "Isabela"))  
+
+pam.data <- PAM_all %>%
+  filter(Species == params$Species) %>%
+  filter(RampType == params$RampType) 
+  
+# Labels for re-ordering site names (warm -> cold)
+SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+```
+
+# Make data into factors
+```{r load.data, include = FALSE}
+pam.data$Site<-as.factor(pam.data$Site)
+pam.data$Species<-as.factor(pam.data$Species)
+pam.data$SiteSpecies<-as.factor(pam.data$Genobysite)
+pam.data$Geno<-as.factor(pam.data$Geno)
+pam.data$Replicate<-as.factor(pam.data$Replicate)
+
+str(pam.data)
+
+#order sites North to South
+levels(pam.data$Site)
+# pam.data$Site = factor(pam.data$Site,levels(pam.data$Site)[c(4,3,6,1,2,5)]) 
+# correct N to S order is: "Eilat"  "AlWajh"  "Yanbu"  "AlFahal"  "AlQunfudhah"  "Obock"   
+
+Pav_data<-subset(pam.data, Species == 'Pavona_clavus')
+Poc_data<-subset(pam.data, Species == 'Pocillopora_sp')
+```
+
+# POCILLOPORA DRCs - HEAT STRESS
+
+```{r poc drc, include = FALSE}
+#### Poc - ISABELA ####
+
+#First, use mselect to find best curve fit
+m1<-drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], fct = LL.3())
+mselect(m1, list(LL.5(), LL.4(), LL.3(), LL.2()), linreg=TRUE, icfct=AIC)
+# Quad and LL.3 have lowest AIC values for heat stress; 
+        
+#Run population-level fit using LL.3 (Based on Cunning et al. 2021) for heat stress only
+Poc_Isabela_pop <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 40),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Isabela_pop)
+plot(Poc_Isabela_pop)
+
+#Run individual genotype fits for heat stress only
+Poc_Isabela <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], curveid=Geno, fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 40),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Isabela)
+plot(Poc_Isabela)
+
+#extract coeffs by geno, then compute 95% CIs - try ED50, or ED25 if temperatures weren't high enough
+Poc_Isabela_genocoeffs_50<-data.frame(ED(Poc_Isabela, c(50)))
+Poc_Isabela_coeff_mean<-mean(Poc_Isabela_genocoeffs_50$Estimate)
+Poc_Isabela_coeff_mean
+
+Poc_Isabela_summary<-data.frame(CI(Poc_Isabela_genocoeffs_50$Estimate, ci=0.95))
+Poc_Isabela_coeff_lower<-Poc_Isabela_summary[3,]
+Poc_Isabela_coeff_upper<-Poc_Isabela_summary[1,]
+```
+
+
+# POCILLOPORA DRCs - COLD STRESS
+
+```{r poc drc, include = FALSE}
+#### Poc - ISABELA ####
+
+Poc_data <- Poc_data %>% 
+  filter(Site == "Darwin") %>%
+  unite("GenoRep", Geno:Replicate, sep= "-",remove = FALSE) %>%
+  dplyr::select(GenoRep, Geno, Replicate, Treatment, PAM) %>%
+  arrange(GenoRep)
+
+# to work with tidy data, need to tidy data
+Poc_data$GenoRep<-as.factor(Poc_data$GenoRep)
+Poc_data <- as_tibble(Poc_data)
+Poc_data
+
+# To fit multiple models, use a nest-map-unnest workflow. 
+# We start by nesting our data based on the group of interest (Genotype or Replicate)
+# nesting is similar to group_by
+# Then  we can handle multiple regressions at once:
+# 'map' will tidy each of the objects
+
+regressions <- Poc_data %>%
+  #nest(data = -GenoRep) %>% # nest by Replicate
+  nest(data = -Geno) %>% # nest by Genotype
+  mutate(
+    fit = map(data, ~ lm(PAM ~ log(Treatment), data = .x)), # S3 list-col
+    tidied = map(fit, tidy),
+    glanced = map(fit, glance),
+    augmented = map(fit, augment)
+  ) 
+
+#regressions %>% 
+  unnest(tidied)
+
+regressions %>% # most useful - gives R^2 and p-value for all models
+  unnest(glanced)
+
+#regressions %>% 
+  unnest(augmented)
+  
+## can't figure out easy way to plot
+
+# Set Up New Data To Predict On
+# following https://dpananos.github.io/posts/2018/04/blog-post-8/
+regressions_new = regressions %>%
+		 mutate(newdata = map(data, ~ data_grid(.x, PAM = seq_range(PAM,10)) ) )
+
+# Predict & Transform NOT WORKING
+step.5 = regressions_new %>%
+		 mutate(preds = map2(regressions, newdata, ~ exp(predict(.x, newdata = .y))) ) #Dont forget the exp!
+
+
+
+```
