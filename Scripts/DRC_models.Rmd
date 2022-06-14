@@ -7,7 +7,7 @@ params:
   Species: Pocillopora_sp
   RampType: Heat
   printcode: TRUE
-  data: /Users/loga8761/github/PAM/Galapagos_all.csv
+  data: /Users/loga8761/github/PAM/data/Galapagos_all.csv
 ---
 
 Help here:
@@ -39,12 +39,16 @@ pam.data <- PAM_all %>%
 
 pam.data <- 
   pam.data %>% 
-  mutate_at("Genobysite", str_replace, "Pocillopora_sp", "POC") %>% 
-  mutate_at("Genobysite", str_replace, "Wolf2", "Wolf") %>% 
-  mutate_at("Genobysite", str_replace, "Punta_Pitt", "San_Cristobal")
+  mutate_at("Site", str_replace, "Pocillopora_sp", "POC") %>% 
+  mutate_at("Site", str_replace, "Wolf2", "Wolf") %>% 
+  mutate_at("Site", str_replace, "Punta_Pitt", "San_Cristobal")
 
 #Labels for re-ordering site names (warm -> cold)
 SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+pam.data$Site<-as.factor(pam.data$Site)
+levels(pam.data$Site)
+pam.data$Site = factor(pam.data$Site,levels(pam.data$Site)[c(1,5,4,2,3)]) 
+# correct N to S order is: "Darwin", "Wolf","San Cristobal", "Espanola", "Isabela"
 ```
 
 # Run Model on all data
@@ -56,6 +60,111 @@ pam.data$Genobysite<-as.factor(pam.data$Genobysite)
 pam.data$FacTemp<-as.factor(pam.data$Treatment) #make treatment a factor
 pam.data$Treatment <- as.integer(pam.data$Treatment) # not sure if this matters
 ```
+Cunning version - this works!!! phew
+
+```{r}
+# Define function to fit 3-parameter LL model to data and return NULL if fitting error
+ll3 <- function(data) {
+  drm(PAM ~ Treatment, data = data, 
+      fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))}
+tryll3 <- possibly(ll3, otherwise = NULL)
+
+# Fit model to each coral, get parameters, fitted values, and residuals
+initmods <- pam.data %>%
+  dplyr::select(Site, Geno, Treatment, PAM) %>%
+  nest(data = c(Treatment, PAM)) %>%
+  # Fit the model to each coral
+  mutate(ll3 = map(data, tryll3)) %>%
+  # Get model parameters and fitted values/residuals
+  mutate(pars = map(ll3, tidy),
+         pred = map2(ll3, data, ~augment(.x, drop_na(.y, PAM))))
+
+# Extract ed50 parameter values from model fits
+ed50 <- initmods %>% 
+  dplyr::select(Site, Geno, pars) %>%
+  unnest(pars) %>%
+  filter(term == "ED50")
+
+# Collect raw data, fitted values, and ed50 estimates
+vals <- initmods %>%
+  dplyr::select(Site, Geno, pred) %>%
+  unnest(pred) %>%
+  full_join(ed50) %>%
+  full_join(pam.data) %>%
+  rename(ed50 = estimate)
+```
+## ANOVA by Site
+
+```{r}
+ANOVA_ED50_Site<-aov(estimate ~ Site, ed50)
+summary(ANOVA_ED50_Site)
+TukeyHSD(ANOVA_ED50_Site)
+```
+
+```{r plot, fig.width = 10, fig.height = 10, echo = FALSE}
+# Define function to plot raw data, fitted values, and ed50 for each genotype
+theme_set(theme_minimal()) 
+plotfits <- function(data) {
+  ggplot(data = data, aes(x = Treatment)) + 
+    geom_point(pch = 4, size = 1.25,
+               aes(y = PAM)) + 
+    geom_point(aes(y = PAM), pch = 1, size = 2) + 
+    geom_line(data = drop_na(data, .fitted), 
+              aes(y = .fitted)) + 
+    geom_vline(data = distinct(data, Site, Geno, ed50),
+               aes(xintercept = ed50), 
+               lwd = 0.2, lty = 2) +
+    geom_text(data = distinct(data, Site, Geno, ed50),
+              aes(x = ed50, y = 0.05, label = round(ed50, 2)), 
+              hjust = 1, nudge_x = -0.2, size = 3) +
+    facet_wrap(~ Site + Geno, drop = TRUE) +
+    #facet_wrap(~ Site, drop = TRUE) +  # by site only
+    scale_color_manual(name = "problem", drop = FALSE,
+                       values = c("black", "yellow", "red", "orange", "blue", "turquoise"))
+}
+```
+
+# Plot fits
+```{r, fig.width = 10, fig.height = 10}
+# Select whether to use model-based filtering or not
+#final <- if (mod.filter) { fvals } else { vals }
+# Plot fits
+jpeg("drcs.jpg", width = 1000, height = 500)
+plotfits(data = vals)
+dev.off()
+```
+# Summarize data filtering
+```{r}
+# final %>%
+#   count(problem) %>%
+#   mutate(freq = n / sum(n)) %>%
+#   knitr::kable()
+
+
+# Calculate pseudo R2 across dataset of the fitted models with given filtering options
+#finalmods <- if (mod.filter) { fmods } else { initmods }
+finalmods <- initmods 
+calc.ss <- finalmods %>%
+  mutate(aov = map(data, ~ aov(PAM ~ factor(Treatment), data = .)),
+         tss = map_dbl(aov, ~ sum(tidy(.)$sumsq)),
+         drc.rss = map_dbl(ll3, ~ tidy(modelFit(.))$rss[2]),
+         pseudo.R2 = 1 - (drc.rss / tss))
+tibble(pseudo_R2 = 1 - (sum(calc.ss$drc.rss) / sum(calc.ss$tss))) %>%
+  knitr::kable()
+```
+
+# Save processed data to file
+```{r save}
+# Write tidy data to file
+ed50 %>%
+  mutate(date = "2022-06") %>%
+  write_csv("/Users/loga8761/github/PAM/data/GLPS_POC_Heat_PAM_DRCs_ed50.csv")
+```
+
+
+
 
 Run model
 ```{r define.fxn, include = FALSE}}
@@ -74,14 +183,26 @@ coefs.fun <- function(x) {coef(x) %>% tidy}
 
 # run three-parameter log-logistic function (LL.3) using drc package on each colony
 df2 <- pam.data %>% 
-  group_by(Site) %>% # not sure if this does anything
+  #group_by(Site) %>% # not sure if this does anything
   group_by(Genobysite) %>% 
   nest() %>%
               mutate(drmod = map(data, drm.func), 
                      pred = map(drmod, predict.fun),
-                     coefs = map(drmod, coefs.fun)) 
+                     coefs = map(drmod, coefs.fun))
 
-ED(df2 %>% group_by(Genobysite) %>% unnest(drmod), c(10,25,50)) # get ed25 values
+# get ED50s for all colonies
+ED50 <- df2 %>% 
+  unnest(coefs) %>%
+  filter(names=="ED50:(Intercept)")
+  
+
+df2 %>% # most useful - gives R^2 and p-value for all models
+  unnest(glanced)
+
+ED(df2 %>% group_by(Genobysite) %>% unnest(drmod), c(50, 25)) # get ed25 values
+
+ED(df2 %>% group_by(Genobysite) %>% unnest(drmod), c(50)) # get ed25 values
+
 ```
 
 
@@ -99,7 +220,7 @@ plot(mod1, broken = TRUE, bcontrol = list(style = "gap"))
 # try this plot package
 tidydrc_plot(mod1,ed50 = TRUE, confint = TRUE, color = ~Site)
   
-  
+
 ## Plot with confidence regions
   ggplot(mod1) +
      geom_point(aes(Treatment, PAM, color=Site, group=Site)) +
@@ -184,7 +305,7 @@ ggplot(hist, aes(x=Site,factor(tolerance2))+
   geom_bar(stat="count") +
   scale_x_discrete(labels=SiteLabels) +
   scale_fill_brewer(palette="Reds") + theme_minimal()+  # Blues for cold tolerance barplots
-  ggtitle(paste0('StrongestColoniesbySite_', params$Species, '_', params$RampType)) 
+  ggtitle(paste0('StrongestColoniesbySite_', params$Species, '_', params$RampType))) 
 #ggsave("Figures/LL.3_StrongestbySite_Heat_PAV_06242021.pdf", width = 10, height = 6)
 ```
 
@@ -193,12 +314,15 @@ ggplot(hist, aes(x=Site,factor(tolerance2))+
 ```{r}
 # run LL.3 on genotypes
 DRCpamgeno = drm(PAM~Treatment, data = pam.data, curveid = Genobysite,
-             fct = LL.3(names = c('hill', 'max', 'ed50')))
+             fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
 summary(DRCpamgeno)
 compParm(DRCpamgeno, 'ed50')
 compParm(DRCpamgeno, 'ed50', "-")
 plot(DRCpamgeno)
-ED(DRCpamgeno, c(50))[,1]
+#ED(DRCpamgeno, c(50))[,1]
+ED(DRCpamgeno, c(10))[,1]
 ```
 
 # Plot data (from Dan)
