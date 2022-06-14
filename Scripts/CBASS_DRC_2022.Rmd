@@ -5,7 +5,7 @@ date: "6/3/2022"
 output: html_document
 params:
   Species: Pocillopora_sp
-  RampType: Cold
+  RampType: Heat
   printcode: TRUE
   data: /Users/loga8761/github/PAM/Data/Galapagos_all.csv
 ---
@@ -29,6 +29,11 @@ library(emmeans)
 library(sjPlot)
 library(drc)
 library(Rmisc)
+library(reshape2)
+library(scales)
+library(ggthemes)
+library(ggpubr)
+library(nlstools)
 
 theme_set(theme_minimal())
 
@@ -47,9 +52,20 @@ PAM_all <- read_csv("/Users/loga8761/github/PAM/Data/Galapagos_all.csv") %>%
 pam.data <- PAM_all %>%
   filter(Species == params$Species) %>%
   filter(RampType == params$RampType) 
-  
-# Labels for re-ordering site names (warm -> cold)
+
+pam.data <- 
+  pam.data %>% 
+  mutate_at("Site", str_replace, "Pocillopora_sp", "POC") %>% 
+  mutate_at("Site", str_replace, "Wolf2", "Wolf") %>% 
+  mutate_at("Site", str_replace, "Punta_Pitt", "San_Cristobal")
+
+#Labels for re-ordering site names (warm -> cold)
 SiteLabels <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+#order sites Warmest to Coolest
+pam.data$Site<-as.factor(pam.data$Site)
+levels(pam.data$Site)
+pam.data$Site = factor(pam.data$Site,levels(pam.data$Site)[c(1,5,4,2,3)]) 
+# correct N to S order is: "Darwin", "Wolf","San Cristobal", "Espanola", "Isabela"
 ```
 
 # Make data into factors
@@ -59,41 +75,36 @@ pam.data$Species<-as.factor(pam.data$Species)
 pam.data$SiteSpecies<-as.factor(pam.data$Genobysite)
 pam.data$Geno<-as.factor(pam.data$Geno)
 pam.data$Replicate<-as.factor(pam.data$Replicate)
-
 str(pam.data)
-
-#order sites North to South
-levels(pam.data$Site)
-# pam.data$Site = factor(pam.data$Site,levels(pam.data$Site)[c(4,3,6,1,2,5)]) 
-# correct N to S order is: "Eilat"  "AlWajh"  "Yanbu"  "AlFahal"  "AlQunfudhah"  "Obock"   
 
 Pav_data<-subset(pam.data, Species == 'Pavona_clavus')
 Poc_data<-subset(pam.data, Species == 'Pocillopora_sp')
 ```
 
-# POCILLOPORA DRCs - HEAT STRESS
-
-```{r poc drc, include = FALSE}
-#### Poc - ISABELA ####
+# POCILLOPORA Dose-response curve model fitting - HEAT STRESS
 
 #First, use mselect to find best curve fit
-m1<-drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], fct = LL.3())
-mselect(m1, list(LL.5(), LL.4(), LL.3(), LL.2()), linreg=TRUE, icfct=AIC)
+#m1<-drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], fct = LL.3())
+#mselect(m1, list(LL.5(), LL.4(), LL.3(), LL.2()), linreg=TRUE, icfct=AIC)
 # Quad and LL.3 have lowest AIC values for heat stress; 
-        
+  
+```{r poc drc isabela, include = FALSE}
+#### Poc - ISABELA ####
+      
 #Run population-level fit using LL.3 (Based on Cunning et al. 2021) for heat stress only
 Poc_Isabela_pop <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], fct = LL.3(names = c("hill", "max", "ED50")),
-      upperl = c(120, 0.72, 40),
+      upperl = c(120, 0.72, 38),
       lowerl = c(10, 0.55, 30))
 summary(Poc_Isabela_pop)
-plot(Poc_Isabela_pop)
+plot(Poc_Isabela_pop,broken = TRUE,xlim=c(26,40)  )
 
 #Run individual genotype fits for heat stress only
 Poc_Isabela <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Isabela",], curveid=Geno, fct = LL.3(names = c("hill", "max", "ED50")),
-      upperl = c(120, 0.72, 40),
+      upperl = c(120, 0.72, 38),
       lowerl = c(10, 0.55, 30))
 summary(Poc_Isabela)
-plot(Poc_Isabela)
+plot(Poc_Isabela,broken = TRUE,xlim=c(26,40)  )
+
 
 #extract coeffs by geno, then compute 95% CIs - try ED50, or ED25 if temperatures weren't high enough
 Poc_Isabela_genocoeffs_50<-data.frame(ED(Poc_Isabela, c(50)))
@@ -104,6 +115,238 @@ Poc_Isabela_summary<-data.frame(CI(Poc_Isabela_genocoeffs_50$Estimate, ci=0.95))
 Poc_Isabela_coeff_lower<-Poc_Isabela_summary[3,]
 Poc_Isabela_coeff_upper<-Poc_Isabela_summary[1,]
 ```
+
+```{r poc drc espanola, include = FALSE}
+#### Poc - ESPANOLA ####
+      
+#Run population-level fit using LL.3 (Based on Cunning et al. 2021) for heat stress only
+Poc_Espanola_pop <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Espanola",], fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Espanola_pop)
+plot(Poc_Espanola_pop)
+
+#Run individual genotype fits for heat stress only
+Poc_Espanola <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Espanola",], curveid=Geno, fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Espanola)
+plot(Poc_Espanola)
+
+#extract coeffs by geno, then compute 95% CIs - try ED50, or ED25 if temperatures weren't high enough
+Poc_Espanola_genocoeffs_50<-data.frame(ED(Poc_Espanola, c(50)))
+Poc_Espanola_coeff_mean<-mean(Poc_Espanola_genocoeffs_50$Estimate)
+Poc_Espanola_coeff_mean
+
+Poc_Espanola_summary<-data.frame(CI(Poc_Espanola_genocoeffs_50$Estimate, ci=0.95))
+Poc_Espanola_coeff_lower<-Poc_Espanola_summary[3,]
+Poc_Espanola_coeff_upper<-Poc_Espanola_summary[1,]
+```
+
+```{r poc drc san cristobal, include = FALSE}
+#### Poc - SAN CRISOTOBAL ####
+      
+#Run population-level fit using LL.3 (Based on Cunning et al. 2021) for heat stress only
+Poc_San_Cristobal_pop <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="San_Cristobal",], fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_San_Cristobal_pop)
+plot(Poc_San_Cristobal_pop)
+
+#Run individual genotype fits for heat stress only
+Poc_San_Cristobal <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="San_Cristobal",], curveid=Geno, fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_San_Cristobal)
+plot(Poc_San_Cristobal)
+
+#extract coeffs by geno, then compute 95% CIs - try ED50, or ED25 if temperatures weren't high enough
+Poc_San_Cristobal_genocoeffs_50<-data.frame(ED(Poc_San_Cristobal, c(50)))
+Poc_San_Cristobal_coeff_mean<-mean(Poc_San_Cristobal_genocoeffs_50$Estimate)
+Poc_San_Cristobal_coeff_mean
+
+Poc_San_Cristobal_summary<-data.frame(CI(Poc_San_Cristobal_genocoeffs_50$Estimate, ci=0.95))
+Poc_San_Cristobal_coeff_lower<-Poc_San_Cristobal_summary[3,]
+Poc_San_Cristobal_coeff_upper<-Poc_San_Cristobal_summary[1,]
+```
+
+```{r poc drc wolf, include = FALSE}
+#### Poc - WOLF ####
+      
+#Run population-level fit using LL.3 (Based on Cunning et al. 2021) for heat stress only
+Poc_Wolf_pop <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Wolf",], fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Wolf_pop)
+plot(Poc_Wolf_pop)
+
+#Run individual genotype fits for heat stress only
+Poc_Wolf <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Wolf",], curveid=Geno, fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Wolf)
+plot(Poc_Wolf)
+
+#extract coeffs by geno, then compute 95% CIs - try ED50, or ED25 if temperatures weren't high enough
+Poc_Wolf_genocoeffs_50<-data.frame(ED(Poc_Wolf, c(50)))
+Poc_Wolf_coeff_mean<-mean(Poc_Wolf_genocoeffs_50$Estimate)
+Poc_Wolf_coeff_mean
+
+Poc_Wolf_summary<-data.frame(CI(Poc_Wolf_genocoeffs_50$Estimate, ci=0.95))
+Poc_Wolf_coeff_lower<-Poc_Wolf_summary[3,]
+Poc_Wolf_coeff_upper<-Poc_Wolf_summary[1,]
+```
+
+```{r poc darwin, include = FALSE}
+#### Poc - DARWIN ####
+      
+#Run population-level fit using LL.3 (Based on Cunning et al. 2021) for heat stress only
+Poc_Darwin_pop <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Darwin",], fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Darwin_pop)
+plot(Poc_Darwin_pop)
+
+#Run individual genotype fits for heat stress only
+Poc_Darwin <- drm(PAM ~ Treatment, data = Poc_data[Poc_data$Site=="Darwin",], curveid=Geno, fct = LL.3(names = c("hill", "max", "ED50")),
+      upperl = c(120, 0.72, 38),
+      lowerl = c(10, 0.55, 30))
+summary(Poc_Darwin)
+plot(Poc_Darwin)
+
+#extract coeffs by geno, then compute 95% CIs - try ED50, or ED25 if temperatures weren't high enough
+Poc_Darwin_genocoeffs_50<-data.frame(ED(Poc_Darwin, c(50)))
+Poc_Darwin_coeff_mean<-mean(Poc_Darwin_genocoeffs_50$Estimate)
+Poc_Darwin_coeff_mean
+
+Poc_Darwin_summary<-data.frame(CI(Poc_Darwin_genocoeffs_50$Estimate, ci=0.95))
+Poc_Darwin_coeff_lower<-Poc_Darwin_summary[3,]
+Poc_Darwin_coeff_upper<-Poc_Darwin_summary[1,]
+```
+
+Plots
+```{r}
+par(mfrow=c(3,2))
+plot(Poc_Darwin_pop, broken = TRUE,xlim=c(26,40)); title(main = "Darwin ")  
+plot(Poc_Wolf_pop, broken = TRUE,xlim=c(26,40)); title(main = "Wolf ")  
+plot(Poc_San_Cristobal_pop, broken = TRUE,xlim=c(26,40)); title(main = "San Cristobal ")
+plot(Poc_Espanola_pop, broken = TRUE,xlim=c(26,40)); title(main = "Espanola ")
+plot(Poc_Isabela_pop, broken = TRUE,xlim=c(26,40)); title(main = "Isabela ")
+```
+
+############################################################################################
+#### Combine genotpye-ED50s into dataframe for statistical analysis ####
+############################################################################################
+```{r combine ED25s, include = FALSE}
+Poc_Geno_ED50s <- data.frame(cbind(Poc_Darwin_genocoeffs_50[,1],Poc_Wolf_genocoeffs_50[,1],Poc_San_Cristobal_genocoeffs_50[,1],
+                    Poc_Espanola_genocoeffs_50[,1], Poc_Isabela_genocoeffs_50[,1]))
+
+Poc_Geno_ED50s<-Poc_Geno_ED50s %>% 
+  dplyr::rename(Darwin= X1,
+         Wolf=X2,
+         San_Cristobal=X3,
+         Espanola=X4,
+         Isabela=X5)
+
+Poc_Geno_ED50s$Geno<-as.factor(1:nrow(Poc_Geno_ED50s))
+str(Poc_Geno_ED50s)
+
+Poc_Geno_ED50s_long<-melt(Poc_Geno_ED50s, id="Geno")
+
+Poc_Geno_ED50s_long<-Poc_Geno_ED50s_long %>% 
+  dplyr::rename(Site= variable,
+         ED50=value)
+
+Poc_Geno_ED50s_long$Species<-rep('Pocillopora_sp')
+Poc_Geno_ED50s_long$MMM<-rep(c('26','26','26','26','26'),each=8)
+
+Poc_Geno_ED50s_long$MMM<-as.numeric(Poc_Geno_ED50s_long$MMM)
+Poc_Geno_ED50s_long['Relative_Threshold'] = Poc_Geno_ED50s_long['ED50'] - Poc_Geno_ED50s_long['MMM']
+
+Poc_ED50_mod<-aov(ED50 ~ Site, Poc_Geno_ED50s_long)
+summary(Poc_ED50_mod)
+TukeyHSD(Poc_ED50_mod)
+```
+
+
+############################################################################################
+#### Combine ED50 data plus predict curves from models for plotting ####
+############################################################################################
+```{r prep plot, include = FALSE}
+Poc_coeff_means<-data.frame(Poc_Darwin_coeff_mean, Poc_Wolf_coeff_mean, Poc_San_Cristobal_coeff_mean, Poc_Espanola_coeff_mean, Poc_Isabela_coeff_mean)
+Poc_coeff_lowers<-data.frame(Poc_Darwin_coeff_lower, Poc_Wolf_coeff_lower, Poc_San_Cristobal_coeff_lower, Poc_Espanola_coeff_lower, Poc_Isabela_coeff_lower)
+Poc_coeff_uppers<-data.frame(Poc_Darwin_coeff_upper, Poc_Wolf_coeff_upper, Poc_San_Cristobal_coeff_upper, Poc_Espanola_coeff_upper, Poc_Isabela_coeff_upper)
+
+Poc_Darwin_preddata = data.frame(temp = seq(30,39, length.out = 100))
+Poc_Darwin_pred = as.data.frame(predict(Poc_Darwin_pop, newdata = Poc_Darwin_preddata, interval = 'confidence'))
+Poc_Darwin_preddata = data.frame(Poc_Darwin_preddata, fvfm = Poc_Darwin_pred$Prediction, Lower = Poc_Darwin_pred$Lower, Upper = Poc_Darwin_pred$Upper)
+
+Poc_Wolf_preddata = data.frame(temp = seq(30,39, length.out = 100))
+Poc_Wolf_pred = as.data.frame(predict(Poc_Wolf_pop, newdata = Poc_Wolf_preddata, interval = 'confidence'))
+Poc_Wolf_preddata = data.frame(Poc_Wolf_preddata, fvfm = Poc_Wolf_pred$Prediction, Lower = Poc_Wolf_pred$Lower, Upper = Poc_Wolf_pred$Upper)
+
+Poc_San_Cristobal_preddata = data.frame(temp = seq(30,39, length.out = 100))
+Poc_San_Cristobal_pred = as.data.frame(predict(Poc_San_Cristobal_pop, newdata = Poc_San_Cristobal_preddata, interval = 'confidence'))
+Poc_San_Cristobal_preddata = data.frame(Poc_San_Cristobal_preddata, fvfm = Poc_San_Cristobal_pred$Prediction, Lower = Poc_San_Cristobal_pred$Lower, Upper = Poc_San_Cristobal_pred$Upper)
+
+Poc_Espanola_preddata = data.frame(temp = seq(30,39, length.out = 100))
+Poc_Espanola_pred = as.data.frame(predict(Poc_Espanola_pop, newdata = Poc_Espanola_preddata, interval = 'confidence'))
+Poc_Espanola_preddata = data.frame(Poc_Espanola_preddata, fvfm = Poc_Espanola_pred$Prediction, Lower = Poc_Espanola_pred$Lower, Upper = Poc_Espanola_pred$Upper)
+
+Poc_Isabela_preddata = data.frame(temp = seq(30,39, length.out = 100))
+Poc_Isabela_pred = as.data.frame(predict(Poc_Isabela_pop, newdata = Poc_Isabela_preddata, interval = 'confidence'))
+Poc_Isabela_preddata = data.frame(Poc_Isabela_preddata, fvfm = Poc_Isabela_pred$Prediction, Lower = Poc_Isabela_pred$Lower, Upper = Poc_Isabela_pred$Upper)
+```
+
+```{r}
+#### PLOT Pocollopora ####
+Poc_data$Treatment<-as.character(Poc_data$Treatment)
+Poc_data$Treatment<-as.numeric(Poc_data$Treatment)
+#need to change y-axis for FvFm data
+
+Poc_plot<- ggplot() +
+  geom_jitter(data = Poc_data, alpha = 0.2, aes(x = Treatment, y = PAM, color = Site), size = 1, width = 0.25) +
+  scale_x_continuous(limits=c(29,40), breaks=c(30,32,34,36,38)) +
+  scale_y_continuous(limits=c(-0.01, 0.75), breaks=c(0, 0.2, 0.4, 0.6)) +
+  
+  geom_line(data = Poc_Darwin_preddata, aes(x = temp, y = fvfm), color = 'royalblue2', show.legend = FALSE) +
+  geom_ribbon(data = Poc_Darwin_preddata, aes(x = temp, ymin=Lower, ymax=Upper), color = 'royalblue2', linetype=2, alpha = 0.2) +
+  geom_vline(data = Poc_coeff_means, aes(xintercept = Poc_Darwin_coeff_mean), color = 'royalblue2', show.legend = FALSE) +
+  annotate("rect", xmin=Poc_coeff_lowers$Poc_Darwin_coeff_lower, xmax=Poc_coeff_uppers$Poc_Darwin_coeff_upper, ymin=-Inf, ymax=Inf, fill= 'royalblue2',  alpha = 0.1) +
+  geom_text(data = Poc_coeff_means, aes(label=round(Poc_Darwin_coeff_mean, digits = 2)), x = 31, y = 0.3, show.legend = FALSE, color = 'royalblue2') +
+
+  geom_line(data = Poc_Wolf_preddata, aes(x = temp, y = fvfm), color = 'darkgoldenrod1', show.legend = FALSE) +
+  #geom_ribbon(data = Poc_Wolf_preddata, aes(x = temp, ymin=Lower, ymax=Upper), color = 'darkgoldenrod1', linetype=2, alpha = 0.2) +
+  #geom_vline(data = Poc_coeff_means, aes(xintercept = Poc_Wolf_coeff_mean), color = 'darkgoldenrod1', show.legend = FALSE) +
+  annotate("rect", xmin=Poc_coeff_lowers$Poc_Wolf_coeff_lower, xmax=Poc_coeff_uppers$Poc_Wolf_coeff_upper, ymin=-Inf, ymax=Inf, fill= 'darkgoldenrod1',  alpha = 0.1) +
+  geom_text(data = Poc_coeff_means, aes(label=round(Poc_Wolf_coeff_mean, digits = 2)), x = 31, y = 0.25, show.legend = FALSE, color = 'darkgoldenrod1') +
+
+  geom_line(data = Poc_San_Cristobal_preddata, aes(x = temp, y = fvfm), color = 'darkorange1', show.legend = FALSE) +
+  #geom_ribbon(data = Poc_San_Cristobal_preddata, aes(x = temp, ymin=Lower, ymax=Upper), color = 'darkorange1', linetype=2, alpha = 0.2) +
+  #geom_vline(data = Poc_coeff_means, aes(xintercept = Poc_San_Cristobal_coeff_mean), color = 'darkorange1', show.legend = FALSE) +
+  annotate("rect", xmin=Poc_coeff_lowers$Poc_San_Cristobal_coeff_lower, xmax=Poc_coeff_uppers$Poc_San_Cristobal_coeff_upper, ymin=-Inf, ymax=Inf, fill= 'darkorange1',  alpha = 0.1) +
+  geom_text(data = Poc_coeff_means, aes(label=round(Poc_San_Cristobal_coeff_mean, digits = 2)), x = 31, y = 0.20, show.legend = FALSE, color = 'darkorange1') +
+
+  geom_line(data = Poc_Espanola_preddata, aes(x = temp, y = fvfm), color = 'red3', show.legend = FALSE) +
+  #geom_ribbon(data = Poc_Espanola_preddata, aes(x = temp, ymin=Lower, ymax=Upper), color = 'red3', linetype=2, alpha = 0.2) +
+  #geom_vline(data = Poc_coeff_means, aes(xintercept = Poc_Espanola_coeff_mean), color = 'red3', show.legend = FALSE) +
+  annotate("rect", xmin=Poc_coeff_lowers$Poc_Espanola_coeff_lower, xmax=Poc_coeff_uppers$Poc_Espanola_coeff_upper, ymin=-Inf, ymax=Inf, fill= 'red3',  alpha = 0.1) +
+  geom_text(data = Poc_coeff_means, aes(label=round(Poc_Espanola_coeff_mean, digits = 2)), x = 31, y = 0.15, show.legend = FALSE, color = 'red3') +
+  
+  geom_line(data = Poc_Isabela_preddata, aes(x = temp, y = fvfm), color = 'springgreen1', show.legend = FALSE) +
+  #geom_ribbon(data = Poc_Isabela_preddata, aes(x = temp, ymin=Lower, ymax=Upper), color = 'springgreen1', linetype=2, alpha = 0.2) +
+  #geom_vline(data = Poc_coeff_means, aes(xintercept = Poc_Isabela_coeff_mean), color = 'springgreen1', show.legend = FALSE) +
+  annotate("rect", xmin=Poc_coeff_lowers$Poc_Isabela_coeff_lower, xmax=Poc_coeff_uppers$Poc_Isabela_coeff_upper, ymin=-Inf, ymax=Inf, fill= 'springgreen1',  alpha = 0.1) +
+  geom_text(data = Poc_coeff_means, aes(label=round(Poc_Isabela_coeff_mean, digits = 2)), x = 31, y = 0.10, show.legend = FALSE, color = 'springgreen1') +
+  
+  ggtitle("Pocillopora sp. ED50") +
+  scale_color_manual(values=c("royalblue2", "darkgoldenrod1", "darkorange1", "red3", "springgreen1")) +
+  ylab("Fv/Fm") +
+  xlab("Temperature (°C)") +
+  theme_bw()
+Poc_plot
+```
+
 
 
 # POCILLOPORA DRCs - COLD STRESS
