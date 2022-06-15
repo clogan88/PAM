@@ -10,6 +10,8 @@ params:
   data: /Users/loga8761/github/PAM/data/Galapagos_all.csv
 ---
 
+update: 6/15/22 seems like I had this recently working but currently is not!
+
 Help here:
 http://www.darrenkoppel.com/2020/09/04/dose-response-modelling-and-model-selection-in-r/
 
@@ -69,6 +71,11 @@ ll3 <- function(data) {
       fct = LL.3(names = c("hill", "max", "ED50")),
       upperl = c(120, 0.72, 38),
       lowerl = c(10, 0.55, 30))}
+tryll3 <- possibly(ll3, otherwise = NULL)
+
+ll3 <- function(data) {
+  drm(PAM ~ Treatment, data = data, 
+      fct = LL.2())}
 tryll3 <- possibly(ll3, otherwise = NULL)
 
 # Fit model to each coral, get parameters, fitted values, and residuals
@@ -317,6 +324,7 @@ DRCpamgeno = drm(PAM~Treatment, data = pam.data, curveid = Genobysite,
              fct = LL.3(names = c("hill", "max", "ED50")),
       upperl = c(120, 0.72, 38),
       lowerl = c(10, 0.55, 30))
+
 summary(DRCpamgeno)
 compParm(DRCpamgeno, 'ed50')
 compParm(DRCpamgeno, 'ed50', "-")
@@ -324,6 +332,43 @@ plot(DRCpamgeno)
 #ED(DRCpamgeno, c(50))[,1]
 ED(DRCpamgeno, c(10))[,1]
 ```
+Try to address Convergence failed error
+```{r}
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(drc)
+
+# Format data as a tibble
+df <- pam.data %>%
+  tibble::tibble(PAM     = c(rep(c, 2), c1),
+                    Treatment = c(Data_OK, Data_NotOK, Data_NotOK),
+                    group    = c(rep("OK",   length(c)),
+                                 rep("FAIL", length(c)),
+                                 rep("OK!",  length(c1))))
+
+#' Wrap DR analysis in tryCatch to checks if there is a solution
+#' @param .x tibble with response and dose columns
+.has_solution = function(.x) {
+  base::tryCatch(drc::drm(data = .x, response ~ dose, fct = LL.5()),
+                 error=function(e){FALSE}) %>%
+    base::isFALSE()
+}
+
+# Fit curve for each subset individually and only keep the ones that work
+df = df %>%
+  tidyr::nest(data=-group) %>%
+  dplyr::mutate(use_it = purrr::map_lgl(data, ~ !.has_solution(.x))) %>%
+  dplyr::filter(use_it)
+
+# Unnest the data and fit again using the curveid parameter
+df %>%
+  tidyr::unnest(data) %>%
+  dplyr::select(-use_it) %>%
+  drc::drm(data=., response ~ dose, fct = drc::LL.5(), curveid = group) %>%
+  plot()
+```
+
 
 # Plot data (from Dan)
 
