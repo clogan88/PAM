@@ -5,26 +5,34 @@ date: '2022-06-14'
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, echo =FALSE}
 # load packages
-remotes::install_github("padpadpadpad/rTPC")
+#remotes::install_github("padpadpadpad/rTPC")
 library(rTPC)
 library(nls.multstart)
 library(broom)
 library(tidyverse)
+library(ggrepel)
+library(MuMIn)
+
+# write function to label ggplot2 panels
+label_facets_num <- function(string){
+  len <- length(string)
+  string = paste('(', 1:len, ') ', string, sep = '')
+  return(string)
+}
+today.date <- Sys.Date()
 ```
 
-Following 
+## Goal: Produce Thermal Performance Curves for GLPS coral data following the rTPC tutorials: 
 https://padpadpadpad.github.io/rTPC/articles/rTPC.html
 
-```{r cars}
+```{r get model names, echo=FALSE}
 get_model_names()
-# choose model
-mod = 'spain_1982'
 ```
 
-Load PAM data
-```{r}
+# Load GLPS PAM data
+```{r load data, echo=FALSE}
 # Load data 
 
 # from "Galapagos_PAM_allsites.Rmd"
@@ -36,7 +44,7 @@ PAM_all <- read_csv("/Users/loga8761/github/PAM/Data/Galapagos_all.csv") %>%
             "Espanola", "Isabela"))  
 
 pam.data <- PAM_all %>%
-  filter(Species == params$Species) %>%
+  filter(Species == "Pocillopora_sp") %>%
   #filter(RampType == params$RampType) %>%                               # Replacing values
   mutate_at("Site",str_replace,"Wolf2", "Wolf") %>%                               # Replacing values
   mutate_at("Site",str_replace,"Punta_Pitt", "San Cristobal") %>%  
@@ -51,26 +59,27 @@ sitelabs <- c("Darwin", "Wolf2", "Punta_Pitt", "Espanola", "Isabela")
 names(sitelabs) <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
 
 # Get subset of data
-Darwin<-pam.data %>% 
-  filter(Site == "Darwin")  %>%
+Isabela<-pam.data %>% 
+  filter(Site == "Isabela")  %>%
   arrange(Geno)
 
 #rename columns to follow tutorial more easily
-Darwin <- as.data.frame(Darwin)  %>%
+Isabela <- as.data.frame(Isabela)  %>%
   rename(temp = Treatment)  %>%
-  rename(rate = PAM)  
+  rename(rate = PAM)  %>%
+  na.omit()
 ```
 
+# Select data from a single site and genotype to try
 ```{r pressure, echo=FALSE}
-# load in data
+# load in sample data
 data("chlorella_tpc")
 
 # keep just a single curve
-d <- filter(chlorella_tpc, curve_id == 1)
-d <- filter(Darwin, Geno == 2)
+# d <- filter(chlorella_tpc, curve_id == 1) # sample data
+d <- filter(Isabela, Geno == 5)
 
-
-# show the data
+# plot data
 ggplot(d, aes(temp, rate)) +
   geom_point() +
   theme_bw(base_size = 12) +
@@ -79,35 +88,33 @@ ggplot(d, aes(temp, rate)) +
        title = 'Photosynthetic efficiency across temperature')
 ```
 
-## Including Plots
+## Estimate starting values for TPC model
 
-You can also embed plots, for example:
+Estimate sensible start values (get_start_vals()), lower (get_lower_lims()) and upper (get_upper_lims()) limits. To demonstrate this, use Johnson-Lewin model (Johnson and Lewin, 1946)
 
-```{r pressure, echo=FALSE}
+```{r get start vals, echo=FALSE}
 # get start values and fit model
-start_vals <- get_start_vals(d$temp, d$rate, model_name = 'spain_1982')
-
+start_vals <- get_start_vals(d$temp, d$rate, model_name = 'johnsonlewin_1946')
 # fit model
-mod <- nls.multstart::nls_multstart(rate~spain_1982(temp = temp, a, b, c, r0),
+mod <- suppressWarnings(
+nls.multstart::nls_multstart(rate~johnsonlewin_1946(temp = temp, r0, e, eh, topt),
 data = d,
-iter = c(3,3,3,3),
+iter = c(5,5,5,5),
 start_lower = start_vals - 1,
 start_upper = start_vals + 1,
-lower = get_lower_lims(d$temp, d$rate, model_name = 'spain_1982'),
-upper = get_upper_lims(d$temp, d$rate, model_name = 'spain_1982'),
+lower = get_lower_lims(d$temp, d$rate, model_name = 'johnsonlewin_1946'),
+upper = get_upper_lims(d$temp, d$rate, model_name = 'johnsonlewin_1946'),
 supp_errors = 'Y',
-convergence_count = FALSE)
-```
+convergence_count = FALSE))
 
-Using nls_multstart, we will use a random-search/shotgun approach to fit the curve. Random start parameter values are picked from a uniform distribution between start_lower and start_upper for each parameter. If the best model is not improved upon (in terms of AIC score) for 100 new start parameter combinations, the function will return that model fit. This is controlled by convergence_count, if this is set to FALSE, nls_multstart() will try and fit all iterations.
-
-
-```{r}
 # look at model fit
 summary(mod)
 ```
+Using nls_multstart, we will use a random-search/shotgun approach to fit the curve. Random start parameter values are picked from a uniform distribution between start_lower and start_upper for each parameter. If the best model is not improved upon (in terms of AIC score) for 100 new start parameter combinations, the function will return that model fit. This is controlled by convergence_count, if this is set to FALSE, nls_multstart() will try and fit all iterations.
 
-```{r}
+# Get model predictions and plot TPC model on actual data
+
+```{r plot preds, echo=FALSE}
 # get predictions
 preds <- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
 preds <- broom::augment(mod, newdata = preds)
@@ -121,20 +128,306 @@ theme_bw()+
        y = 'FvFm',
        title = 'Photosynthetic efficiency across temperature')
 ```
-```{r}
-# get predictions
-preds <- data.frame(temp = seq(min(d$temp), max(d$temp), length.out = 100))
-preds <- broom::augment(mod, newdata = preds)
-
-# plot
-ggplot(preds) +
-geom_point(aes(temp, rate), d) +
-geom_line(aes(temp, .fitted), col = 'blue') +
-theme_bw()+
-labs(x = 'Temperature (ºC)',
-       y = 'FvFm',
-       title = 'Photosynthetic efficiency across temperature')
-```
 
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+# Model selection 
+1. Fit all models in rTPC and plot using 1 example curve from Darwin
+2. Next, I manually removed models that obviously did not fit well at all:
+boatman, briere2, joehnk, lrf, ratkowsky, sharpeschoolfull, sharpeschoollow, modified gaussian, kamykowski, gaussian, joehnk, delong, flinn, quadratic, weibull, thomas1
+3. Run  models on other example curves from Isabela and Darwin
+
+```{r fit many models, echo = FALSE}
+# fit every model formulation in rTPC
+d_fits <- nest(d, data = c(temp, rate)) %>%
+  mutate(beta = map(data, ~nls_multstart(rate~beta_2012(temp = temp, a, b, c, d, e),
+                        data = .x,
+                        iter = c(6,6,6,6,6),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'beta_2012') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'beta_2012') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'beta_2012'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'beta_2012'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+         hinshelwood = map(data, ~nls_multstart(rate~hinshelwood_1947(temp = temp, a, e, b, eh),
+                        data = .x,
+                        iter = c(5,5,5,5),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'hinshelwood_1947') - 1,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'hinshelwood_1947') + 1,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'hinshelwood_1947'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'hinshelwood_1947'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+         johnson_lewin = map(data, ~suppressWarnings(nls_multstart(rate~ johnsonlewin_1946(temp = temp, r0, e, eh, topt),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'johnsonlewin_1946') - 1,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'johnsonlewin_1946') + 1,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'johnsonlewin_1946'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'johnsonlewin_1946'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE))),
+         lactin2 = map(data, ~nls_multstart(rate~lactin2_1995(temp = temp, a, b, tmax, delta_t),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'lactin2_1995') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'lactin2_1995') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'lactin2_1995'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'lactin2_1995'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+         oneill = map(data, ~nls_multstart(rate~oneill_1972(temp = temp, rmax, ctmax, topt, q10),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'oneill_1972') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'oneill_1972') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'oneill_1972'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'oneill_1972'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+         pawar = map(data, ~nls_multstart(rate~pawar_2018(temp = temp, r_tref, e, eh, topt, tref = 15),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'pawar_2018') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'pawar_2018') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'pawar_2018'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'pawar_2018'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+    
+         rezende = map(data, ~nls_multstart(rate~rezende_2019(temp = temp, q10, a,b,c),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'rezende_2019') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'rezende_2019') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'rezende_2019'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'rezende_2019'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+         spain = map(data, ~nls_multstart(rate~spain_1982(temp = temp, a,b,c,r0),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'spain_1982') - 1,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'spain_1982') + 1,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'spain_1982'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'spain_1982'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
+         thomas2 = map(data, ~nls_multstart(rate~thomas_2017(temp = temp, a,b,c,d,e),
+                        data = .x,
+                        iter = c(3,3,3,3,3),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'thomas_2017') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'thomas_2017') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'thomas_2017'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'thomas_2017'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)))
+
+```
+
+
+# Overlay multiple TPC models on real data
+The predictions of each model can be estimated using broom::augment(). By stacking the models into long format, this can be done on all models at once. To create a smooth curve fit, the predictions are done on a new temperature vector that has 100 points over the temperature range. The predictions for each model formulation are then visualised in ggplot2.
+
+```{r overlay TPCs, echo=FALSE}
+# stack models
+d_stack <- select(d_fits, -data) %>%
+  pivot_longer(., names_to = 'model_name', values_to = 'fit', hinshelwood:thomas2)
+
+# get predictions using augment
+newdata <- tibble(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+d_preds <- d_stack %>%
+  mutate(., preds = map(fit, augment, newdata = newdata)) %>%
+  select(-fit) %>%
+  unnest(preds)
+
+# take a random point from each model for labelling
+d_labs <- filter(d_preds, temp < 30) %>%
+  group_by(., model_name) %>%
+  sample_n(., 1) %>%
+  ungroup()
+
+# plot
+ggplot(d_preds, aes(temp, .fitted)) +
+  geom_line(aes(col = model_name)) +
+  geom_label_repel(aes(temp, .fitted, label = model_name, col = model_name), fill = 'white', nudge_y = 0.8, segment.size = 0.2, segment.colour = 'grey50', d_labs) +
+  geom_point(aes(temp, rate), d) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = 'none') +
+  ylim(.45, .65) +
+  labs(x = 'Temperature (ºC)',
+       y = 'FvFm',
+       title = 'Photochemical Efficiency across temperatures') +
+  geom_hline(aes(yintercept = 0), linetype = 2) +
+  scale_color_brewer(type = 'qual', palette = 2)
+```
+
+# Compare Model fits using AICc
+
+1. Several models were omitted that did not fit data at all:
+boatman, briere2, joehnk, lrf, ratkowsky, sharpeschoolfull, sharpeschoollow, modified gaussian, kamykowski, gaussian
+
+2. After examining data from several coral genotyples, the most promising TPC models include:
+thomas2, spain, rezende, lactin2,pawar, oneill, johnson_lewin, hinshelwood, beta
+
+```{r get AIC, echo = FALSE}
+d_ic <- d_stack %>%
+  mutate(., info = map(fit, glance),
+         AICc =  map_dbl(fit, MuMIn::AICc)) %>%
+  select(-fit) %>%
+  unnest(info) %>%
+  select(model_name, sigma, AIC, AICc, BIC, df.residual)
+
+d_ic
+```
+
+# Model selection
+Use AICc score to compare between models. For a model selection approach, the model with the lowest AICc score is chosen as the model that best supports the data. The best model varies by genotype but pawar, johnson_lewin, and rezende have shown up as best fitting models according to AICc.
+
+```{r highlight best model, echo= FALSE}
+# filter for best model
+best_model = filter(d_ic, AICc == min(AICc)) %>% pull(model_name)
+best_model 
+#> [1] "johnson_lewin" "pawar"  
+
+# get colour code
+col_best_mod = RColorBrewer::brewer.pal(n = 6, name = "Dark2")[6]
+
+# plot
+ggplot(d_preds, aes(temp, .fitted)) +
+  geom_line(aes(group = model_name), col = 'grey50', alpha = 0.5) +
+  geom_line(data = filter(d_preds, model_name == best_model), col = col_best_mod) +
+  geom_label_repel(aes(temp, .fitted, label = model_name), fill = 'white', nudge_y = 0.8, segment.size = 0.2, segment.colour = 'grey50', data = filter(d_labs, model_name == best_model), col = col_best_mod) +
+  geom_point(aes(temp, rate), d) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = 'none') +
+  ylim(.4,.65) +
+  labs(x = 'Temperature (ºC)',
+       y = 'FvFm',
+       title = 'Photochemical efficiency across temperatures')
+  geom_hline(aes(yintercept = 0), linetype = 2) 
+```
+
+# Model averaging
+Not sure if I will average models but here is how it can be done. For a model averaging approach, predictions and parameters from the models are averaged. In ecology, this is usually done based on each model’s weighting. The best supported model’s predictions are taken into account more than the least supported. Often the number of models is reduced by setting a cut-off for the difference in the information criterion metric being used. A common approach is to only keep models within Δ2𝐴𝐼𝐶 of the best model.
+```{r, echo = FALSE}
+# get model weights
+# filtering on AIC score is hashtagged out in this example
+d_ic <- d_ic %>%
+  # filter(d_ic, aic - min(aic) <= 2) %>%
+  mutate(., weight = MuMIn::Weights(AICc))
+
+select(d_ic, model_name, weight) %>%
+  arrange(., desc(weight))
+
+# calculate average prediction
+ave_preds <- left_join(d_preds, select(d_ic, model_name, weight)) %>%
+  group_by(temp) %>%
+  summarise(., .fitted = sum(.fitted*weight)) %>%
+  ungroup() %>%
+  mutate(model_name = 'model average')
+#> Joining, by = "model_name"
+
+# create label for averaged predictions
+d_labs <- filter(ave_preds, temp < 30) %>% sample_n(., 1)
+
+# plot these
+ggplot(d_preds, aes(temp, .fitted)) +
+  geom_line(aes(col = model_name), alpha = 0.3) +
+  geom_line(data = ave_preds, col = 'blue') +
+  geom_label_repel(aes(label = model_name), fill = 'white', nudge_y = 0.8, segment.size = 0.2, segment.colour = 'grey50', data = d_labs, col = 'blue') +
+  geom_point(aes(temp, rate), d) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = 'none') +
+  ylim(.40,.65 ) +
+  labs(x = 'Temperature (ºC)',
+       y = 'FvFm',
+       title = 'Respiration across temperatures',
+       subtitle= 'Model averaged predictions') +
+  geom_hline(aes(yintercept = 0), linetype = 2) +
+  scale_color_brewer(type = 'qual', palette = 2)
+```
+
+
+# Get Parameter Estimates and make observations
+Cheryl's Observations aftering running through several individual curves:
+1. Many of the models do not give a ctmin (Inf) or thermal tolerance, but can still calculate thermal breadth
+2. 
+
+```{r get params, echo=FALSE}
+# calculate estimated parameters
+params <- d_stack %>%
+  mutate(., params = map(fit, calc_params)) %>%
+  select(-fit) %>%
+  unnest(params)
+
+# get averaged parameters based on model weights
+ave_params <- left_join(params, select(d_ic, model_name, weight)) %>%
+  summarise(., across(rmax:skewness, function(x){sum(x*.$weight)})) %>%
+  mutate(model_name = 'model average')
+#> Joining, by = "model_name"
+
+# show them
+bind_rows(select(params, model_name, rmax:skewness), ave_params) %>%
+  mutate_if(is.numeric, round, 2)
+```
+  
+  
+```{r view data}
+#This gives us a dataframe with our grouping variables
+glimpse(select(d_fits, 1:7))
+#Each column containing the model stores the actual model fit.
+d_fits$beta[[1]]
+```
+
+# Plot indiviudal TPCs and get TPC parameters
+The parameters from each model fit can be extracted using broom::tidy(). However, as each model has parameters with different meanings, this may not be very useful in this instance.
+
+The predictions of each model can be estimated using broom::augment(). This can be done on all models at once after the models are stacked into long format. To create a smooth curve fit, the predictions are done on a new temperature vector that has 100 points over the temperature range. The predictions for each model formulation are then visualised in ggplot2.
+
+```{r get parameters, echo = FALSE}
+# stack models
+d_stack <- select(d_fits, -data) %>%
+  pivot_longer(., names_to = 'model_name', values_to = 'fit', hinshelwood:thomas2)
+
+# get parameters using tidy
+params <- d_stack %>%
+  mutate(., est = map(fit, tidy)) %>%
+  select(-fit) %>%
+  unnest(est)
+glimpse(params)
+
+
+# get predictions using augment
+newdata <- tibble(temp = seq(min(d$temp), max(d$temp), length.out = 100))
+d_preds <- d_stack %>%
+  mutate(., preds = map(fit, augment, newdata = newdata)) %>%
+  select(-fit) %>%
+  unnest(preds)
+
+
+```
+ 
+# Plot many TPC models to same data
+```{r plot TPCs, echo = FALSE}
+# plot
+ggplot(d_preds, aes(temp, rate)) +
+  geom_point(aes(temp, rate), d) +
+  geom_line(aes(temp, .fitted), col = 'blue') +
+  facet_wrap(~model_name, labeller = labeller(model_name = label_facets_num), scales = 'free', ncol = 5) +
+  theme_bw(base_size = 12) +
+  theme(legend.position = 'none',
+        strip.text = element_text(hjust = 0),
+        strip.background = element_blank()) +
+  labs(x = 'Temperature (ºC)',
+       y = 'FvFm',
+       title = 'Fits of better models available in rTPC') +
+  ylim(.45, .65) +
+  geom_hline(aes(yintercept = 0), linetype = 2)
+
+# save
+filename=paste0('rTPC_fits_Isabela_better_', today.date, '.','png')
+ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 8, height = 4)
+```
