@@ -1,0 +1,231 @@
+---
+title: "rTPC_all"
+author: "Cheryl Logan"
+date: '2022-06-15'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# load packages
+#remotes::install_github("padpadpadpad/rTPC")
+library(rTPC)
+library(nls.multstart)
+library(broom)
+library(tidyverse)
+library(ggrepel)
+library(MuMIn)
+library(dplyr)
+
+# write function to label ggplot2 panels
+label_facets_num <- function(string){
+  len <- length(string)
+  string = paste('(', 1:len, ') ', string, sep = '')
+  return(string)
+}
+today.date <- Sys.Date()
+```
+
+## Goal: Produce Thermal Performance Curves for all GLPS coral data 
+
+following the rTPC tutorial: 
+https://padpadpadpad.github.io/rTPC/articles/rTPC.html
+
+# Load GLPS PAM data
+```{r load data, include=FALSE}
+# Load data from "Galapagos_PAM_allsites.Rmd"
+# Remove sites with odd data or different temp profiles
+PAM_all <- read_csv("/Users/loga8761/github/PAM/Data/Galapagos_all.csv") %>%
+  filter(Site != "AcademyBay"& Site != "Floreana") %>%
+  mutate(Site = fct_relevel(Site, 
+            "Darwin", "Wolf2", "Punta_Pitt", 
+            "Espanola", "Isabela"))  
+
+pam.data <- PAM_all %>%
+  filter(Species == "Pocillopora_sp") %>%
+  #filter(RampType == params$RampType) %>%                               # Replacing values
+  mutate_at("Site",str_replace,"Wolf2", "Wolf") %>%                      # Replacing values
+  mutate_at("Site",str_replace,"Punta_Pitt", "San Cristobal") %>%  
+  select(Genobysite, Treatment, PAM, Site,Geno) %>%
+  unite("Sitebygeno", Site:Geno, remove = FALSE) %>%
+  arrange(Site,Sitebygeno) %>%
+  #mutate(curve_id = as.integer(factor(Sitebygeno))) # give each curve a unique ID
+mutate(curve_id = as.integer(factor(Site))) # give each Site a unique ID
+
+pam.data$Geno <- as.numeric(pam.data$Geno)
+pam.data$Site <-  as.factor(pam.data$Site)
+pam.data$Treatment <- as.numeric(pam.data$Treatment)
+  
+#Labels for re-ordering site names (warm -> cold)
+sitelabs <- c("Darwin", "Wolf2", "Punta_Pitt", "Espanola", "Isabela")
+names(sitelabs) <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
+
+# # Get subset of data
+# Isabela<-pam.data %>% 
+#   filter(Site == "Isabela")  %>%
+#   arrange(Geno)
+# 
+# #rename columns to follow tutorial more easily
+# Isabela <- as.data.frame(Isabela)  %>%
+#   dplyr::rename(temp = Treatment)  %>%
+#   dplyr::rename(rate = PAM)  %>%
+#   na.omit()
+
+#Get all data and make a single curve
+ALL <- pam.data %>% 
+  dplyr::rename(temp = Treatment)  %>%
+  dplyr::rename(rate = PAM)  %>%
+  group_by(Site) %>%
+  na.omit() %>%
+  select(curve_id, temp,rate, Site) %>%
+  arrange(curve_id, Site)
+```
+
+# PLots all 40 colonies using Lactin2 model - this works for all but 6 colonies (line vs curve fit)
+Next: try again with Oniell (couldnt get to work); try Spain
+Spain works for all coral colonies except 1!
+
+```{r}
+# load in data
+#data("chlorella_tpc")
+#d <- chlorella_tpc
+#d <- Isabela
+d <- ALL
+
+# when scaling up our code to fit hundreds of models, its nice to have a progress bar
+# edit nls_multstart to allow for a progress bar
+nls_multstart_progress <- function(formula, data = parent.frame(), iter, start_lower, 
+                                   start_upper, supp_errors = c("Y", "N"), convergence_count = 100, 
+                                   control, modelweights, ...){
+  if(!is.null(pb)){
+    pb$tick()
+  }
+  nls_multstart(formula = formula, data = data, iter = iter, start_lower = start_lower, 
+                start_upper = start_upper, supp_errors = supp_errors, convergence_count = convergence_count, 
+                control = control, modelweights = modelweights, ...)
+}
+
+# start progress bar and estimate time it will take
+number_of_models <- 1
+number_of_curves <- length(unique(d$curve_id))
+
+# setup progress bar
+pb <- progress::progress_bar$new(total = number_of_curves*number_of_models,
+                                 clear = FALSE,
+                                 format ="[:bar] :percent :elapsedfull")
+
+# get start values and fit model
+#start_vals <- get_start_vals(d$temp, d$rate, model_name = 'pawar_2018')
+
+# fit two chosen model formulation in rTPC
+d_fits <- nest(d, data = c(temp, rate)) %>%
+  mutate(johnson_lewin = map(data, ~suppressWarnings(nls_multstart(rate~ johnsonlewin_1946(temp = temp, r0, e, eh, topt),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'johnsonlewin_1946') - 1,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'johnsonlewin_1946') + 1,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'johnsonlewin_1946'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'johnsonlewin_1946'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE))))
+```
+Like previous vignettes, the predictions of each model can be estimated using broom::augment(). To do this, we first create a new list column containing high resolution temperature values by taking the min and max of each curve. Next we stack the models and finally we get the new predictions using the map2(), which allows us to use both fit and new_data list columns. After unnesting the preds column, we are then left with high resolution predictions for each curve. As this code covers a lot of steps, each line of the code is commented.
+
+```{r}
+# create new list column of for high resolution data
+d_preds <- mutate(d_fits, new_data = map(data, ~tibble(temp = seq(min(.x$temp), max(.x$temp), length.out = 100)))) %>%
+  # get rid of original data column
+  select(., -data) %>%
+  # stack models into a single column, with an id column for model_name
+  pivot_longer(., names_to = 'model_name', values_to = 'fit', c(johnson_lewin)) %>%
+  # create new list column containing the predictions
+  # this uses both fit and new_data list columns
+  mutate(preds = map2(fit, new_data, ~augment(.x, newdata = .y))) %>%
+  # select only the columns we want to keep
+  select(curve_id, Site, model_name, preds) %>%
+  # unlist the preds list column
+  unnest(preds)
+
+glimpse(d_preds)
+```
+
+```{r}
+# plot
+ggplot(d_preds) +
+  geom_point(aes(temp, rate), d) +
+  geom_line(aes(temp, .fitted, color = Site)) +
+  #facet_wrap(~curve_id, scales = 'free_y', ncol = 8) +
+  facet_wrap(~Site) +
+  #facet_wrap(Site)
+  theme_bw() +
+  theme(legend.position = 'none') +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  labs(x = 'Temperature (ºC)',
+       y = 'FvFm',
+       title = 'TPCs by Site',
+       subtitle = 'TPC model: johnson-lewin')
+  
+# save
+filename=paste0('rTPC_fits_BySite_johnson-lewin_', today.date, '.','png')
+ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 8, height = 4)
+```
+```{r}
+# plot overlay of 3 sites for Hannah Kim's poster
+# d_preds_DarIsaEsp <- d_preds %>%
+#   filter(Site != "Wolf"& Site != "San Cristobal")
+
+# stack models and calculate extra params
+d_params <- pivot_longer(d_fits, names_to = 'model_name', values_to = 'fit', c(johnson_lewin)) %>%
+  mutate(params = map(fit, calc_params)) %>%
+  select(curve_id, Site,model_name, params) %>%
+  unnest(params)
+
+# plot overlay of 3 sites for Hannah Kim's poster
+# d_params_DarIsaEsp <- d_params %>%
+#   filter(Site != "Wolf"& Site != "San Cristobal") 
+  
+# get topt for each model
+d_params <- mutate(d_params, topt_text = paste(round(topt,1), 'ºC', sep = ' '))
+
+# take a random point from each model for labelling
+d_labs <- filter(d_preds, temp < 30) %>%
+  group_by(., Site) %>%
+  sample_n(., 1) %>%
+  ungroup()
+```
+
+Plot overlay of TPCs by site
+```{r}
+ggplot(d_preds) +
+  #geom_point(aes(temp, rate, color = Site, alpha=0.1), d) +
+  geom_line(aes(temp, .fitted, color = Site)) +
+  #facet_wrap(~curve_id, scales = 'free_y', ncol = 8) +
+  #facet_wrap(~Site) +
+  #facet_wrap(Site)
+  theme_classic() +
+  theme(legend.position = c(0.5, 0.3)) +
+  #geom_label_repel(aes(temp, .fitted, label = Site, col = Site), fill = 'white', nudge_y = 0.8, segment.size = 0.2, segment.colour = 'grey50', d_labs) +
+  #geom_label_repel(aes(topt, rmax, label = topt_text, col = Site), fill = 'white', nudge_y = 0.8, segment.size = 0.2, segment.colour = 'grey50', d_params_DarIsaEsp) +
+  #geom_label_repel(aes(topt, rmax, label = topt_text, col = Site), d_params) +
+  #geom_point(aes(topt, rmax, col = Site), size = 4, d_params) +
+  scale_color_brewer(type = 'qual', palette = 2) +
+  labs(x = 'Temperature (ºC)',
+       y = 'Photochemical Efficiency (FvFm)',
+       title = 'Thermal Optimum (Topt) by Site',
+       subtitle = 'TPC model: johnson-lewin')
+  
+# save
+filename=paste0('rTPC_fits_AllSites_johnson-lewin_no label', today.date, '.','png')
+ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 6, height = 5)
+```
+
+The traits of each thermal performance curve can also easily be calculated.
+```{r params}
+# stack models and calculate extra params
+d_params <- pivot_longer(d_fits, names_to = 'model_name', values_to = 'fit', c(johnson_lewin)) %>%
+  mutate(params = map(fit, calc_params)) %>%
+  select(curve_id, Site,model_name, params) %>%
+  unnest(params)
+
+g <- glimpse(as_tibble(d_params))
+write_csv(g, "johnson-lewin_params_bySite.csv")
+```

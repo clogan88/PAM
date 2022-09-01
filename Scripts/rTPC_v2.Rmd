@@ -5,7 +5,7 @@ date: '2022-06-14'
 output: html_document
 ---
 
-```{r setup, echo =FALSE}
+```{r setup, include=FALSE}
 # load packages
 #remotes::install_github("padpadpadpad/rTPC")
 library(rTPC)
@@ -24,15 +24,17 @@ label_facets_num <- function(string){
 today.date <- Sys.Date()
 ```
 
-## Goal: Produce Thermal Performance Curves for GLPS coral data following the rTPC tutorials: 
+## Goal: Produce Thermal Performance Curves for GLPS coral data 
+
+following the rTPC tutorial: 
 https://padpadpadpad.github.io/rTPC/articles/rTPC.html
 
-```{r get model names, echo=FALSE}
+```{r get model names, include=FALSE}
 get_model_names()
 ```
 
 # Load GLPS PAM data
-```{r load data, echo=FALSE}
+```{r load data, include=FALSE}
 # Load data 
 
 # from "Galapagos_PAM_allsites.Rmd"
@@ -58,26 +60,46 @@ pam.data$Treatment <- as.numeric(pam.data$Treatment)
 sitelabs <- c("Darwin", "Wolf2", "Punta_Pitt", "Espanola", "Isabela")
 names(sitelabs) <- c("Darwin", "Wolf","San Cristobal", "Espanola", "Isabela")
 
-# Get subset of data
-Isabela<-pam.data %>% 
-  filter(Site == "Isabela")  %>%
-  arrange(Geno)
+# # Get subset of data
+# Isabela<-pam.data %>% 
+#   filter(Site == "Isabela")  %>%
+#   arrange(Geno)
+# 
+# #rename columns to follow tutorial more easily
+# Isabela <- as.data.frame(Isabela)  %>%
+#   dplyr::rename(temp = Treatment)  %>%
+#   dplyr::rename(rate = PAM)  %>%
+#   na.omit()
 
-#rename columns to follow tutorial more easily
-Isabela <- as.data.frame(Isabela)  %>%
-  rename(temp = Treatment)  %>%
-  rename(rate = PAM)  %>%
-  na.omit()
+#Get all data and make a single curve
+ALL <- as.data.frame(pam.data) %>% 
+  dplyr::rename(temp = Treatment)  %>%
+  dplyr::rename(rate = PAM)  %>%
+  #filter(Site == "Darwin") %>%
+  na.omit() %>%
+  mutate(curve_id = 1) %>%
+  select(temp,rate,curve_id) %>%
+  arrange(temp)
+  
+#   filter(Site == "Isabela")  %>%
+#   arrange(Geno)
+# 
+# #rename columns to follow tutorial more easily
+# Isabela <- as.data.frame(Isabela)  %>%
+#   dplyr::rename(temp = Treatment)  %>%
+#   dplyr::rename(rate = PAM)  %>%
+#   na.omit()
 ```
 
 # Select data from a single site and genotype to try
-```{r pressure, echo=FALSE}
+```{r pressure, include=FALSE}
 # load in sample data
-data("chlorella_tpc")
+# data("chlorella_tpc")
 
 # keep just a single curve
 # d <- filter(chlorella_tpc, curve_id == 1) # sample data
-d <- filter(Isabela, Geno == 5)
+#d <- dplyr::filter(Isabela, Geno == 5)
+d <- ALL
 
 # plot data
 ggplot(d, aes(temp, rate)) +
@@ -88,11 +110,11 @@ ggplot(d, aes(temp, rate)) +
        title = 'Photosynthetic efficiency across temperature')
 ```
 
-## Estimate starting values for TPC model
+## Estimate starting values for a single curve and a single TPC model
 
 Estimate sensible start values (get_start_vals()), lower (get_lower_lims()) and upper (get_upper_lims()) limits. To demonstrate this, use Johnson-Lewin model (Johnson and Lewin, 1946)
 
-```{r get start vals, echo=FALSE}
+```{r get start vals}
 # get start values and fit model
 start_vals <- get_start_vals(d$temp, d$rate, model_name = 'johnsonlewin_1946')
 # fit model
@@ -138,6 +160,7 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 2. Next, I manually removed models that obviously did not fit well at all:
 boatman, briere2, joehnk, lrf, ratkowsky, sharpeschoolfull, sharpeschoollow, modified gaussian, kamykowski, gaussian, joehnk, delong, flinn, quadratic, weibull, thomas1
 3. Run  models on other example curves from Isabela and Darwin
+4. Run all Isabela samples as a single curve - best model is lactin2; all samples Darwin best is oneill, lactin2 2nd best; all sites all curve: best model is lactin2
 
 ```{r fit many models, echo = FALSE}
 # fit every model formulation in rTPC
@@ -206,6 +229,15 @@ d_fits <- nest(d, data = c(temp, rate)) %>%
                         upper = get_upper_lims(.x$temp, .x$rate, model_name = 'rezende_2019'),
                         supp_errors = 'Y',
                         convergence_count = FALSE)),
+         sharpeschoolhigh = map(data, ~nls_multstart(rate~sharpeschoolhigh_1981(temp = temp, r_tref,e,eh,th, tref = 15),
+                        data = .x,
+                        iter = c(4,4,4,4),
+                        start_lower = get_start_vals(.x$temp, .x$rate, model_name = 'sharpeschoolhigh_1981') - 10,
+                        start_upper = get_start_vals(.x$temp, .x$rate, model_name = 'sharpeschoolhigh_1981') + 10,
+                        lower = get_lower_lims(.x$temp, .x$rate, model_name = 'sharpeschoolhigh_1981'),
+                        upper = get_upper_lims(.x$temp, .x$rate, model_name = 'sharpeschoolhigh_1981'),
+                        supp_errors = 'Y',
+                        convergence_count = FALSE)),
          spain = map(data, ~nls_multstart(rate~spain_1982(temp = temp, a,b,c,r0),
                         data = .x,
                         iter = c(4,4,4,4),
@@ -231,7 +263,7 @@ d_fits <- nest(d, data = c(temp, rate)) %>%
 # Overlay multiple TPC models on real data
 The predictions of each model can be estimated using broom::augment(). By stacking the models into long format, this can be done on all models at once. To create a smooth curve fit, the predictions are done on a new temperature vector that has 100 points over the temperature range. The predictions for each model formulation are then visualised in ggplot2.
 
-```{r overlay TPCs, echo=FALSE}
+```{r overlay TPCs, echo=FALSE,warning=FALSE}
 # stack models
 d_stack <- select(d_fits, -data) %>%
   pivot_longer(., names_to = 'model_name', values_to = 'fit', hinshelwood:thomas2)
@@ -272,6 +304,8 @@ boatman, briere2, joehnk, lrf, ratkowsky, sharpeschoolfull, sharpeschoollow, mod
 2. After examining data from several coral genotyples, the most promising TPC models include:
 thomas2, spain, rezende, lactin2,pawar, oneill, johnson_lewin, hinshelwood, beta
 
+3. Best model fit for Isabela (all curves) is rezende
+
 ```{r get AIC, echo = FALSE}
 d_ic <- d_stack %>%
   mutate(., info = map(fit, glance),
@@ -286,7 +320,7 @@ d_ic
 # Model selection
 Use AICc score to compare between models. For a model selection approach, the model with the lowest AICc score is chosen as the model that best supports the data. The best model varies by genotype but pawar, johnson_lewin, and rezende have shown up as best fitting models according to AICc.
 
-```{r highlight best model, echo= FALSE}
+```{r highlight best model, echo= FALSE,message=FALSE,warning=FALSE}
 # filter for best model
 best_model = filter(d_ic, AICc == min(AICc)) %>% pull(model_name)
 best_model 
@@ -312,7 +346,7 @@ ggplot(d_preds, aes(temp, .fitted)) +
 
 # Model averaging
 Not sure if I will average models but here is how it can be done. For a model averaging approach, predictions and parameters from the models are averaged. In ecology, this is usually done based on each model’s weighting. The best supported model’s predictions are taken into account more than the least supported. Often the number of models is reduced by setting a cut-off for the difference in the information criterion metric being used. A common approach is to only keep models within Δ2𝐴𝐼𝐶 of the best model.
-```{r, echo = FALSE}
+```{r, echo = FALSE,warning=FALSE}
 # get model weights
 # filtering on AIC score is hashtagged out in this example
 d_ic <- d_ic %>%
@@ -352,11 +386,11 @@ ggplot(d_preds, aes(temp, .fitted)) +
 
 
 # Get Parameter Estimates and make observations
-Cheryl's Observations aftering running through several individual curves:
+Cheryl's Observations after running through several individual curves:
 1. Many of the models do not give a ctmin (Inf) or thermal tolerance, but can still calculate thermal breadth
 2. 
 
-```{r get params, echo=FALSE}
+```{r get params}
 # calculate estimated parameters
 params <- d_stack %>%
   mutate(., params = map(fit, calc_params)) %>%
@@ -411,7 +445,7 @@ d_preds <- d_stack %>%
 ```
  
 # Plot many TPC models to same data
-```{r plot TPCs, echo = FALSE}
+```{r plot TPCs, echo = FALSE,warning=FALSE}
 # plot
 ggplot(d_preds, aes(temp, rate)) +
   geom_point(aes(temp, rate), d) +
@@ -423,11 +457,11 @@ ggplot(d_preds, aes(temp, rate)) +
         strip.background = element_blank()) +
   labs(x = 'Temperature (ºC)',
        y = 'FvFm',
-       title = 'Fits of better models available in rTPC') +
+       title = 'Fits of better models available in rTPC - All Sites All curves') +
   ylim(.45, .65) +
   geom_hline(aes(yintercept = 0), linetype = 2)
 
 # save
-filename=paste0('rTPC_fits_Isabela_better_', today.date, '.','png')
+filename=paste0('rTPC_fits_AllsitesAllcurves_better_', today.date, '.','png')
 ggsave(path= "/Users/loga8761/github/PAM/Figures", filename, width = 8, height = 4)
 ```
